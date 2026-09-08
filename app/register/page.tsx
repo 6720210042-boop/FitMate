@@ -42,7 +42,7 @@ export default function RegisterPage() {
 
     setTimeout(() => {
       setIsLoading(false);
-      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...");
+      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังนำท่านไปทำแบบประเมินสุขภาพ...");
 
       // บันทึกข้อมูลบัญชีลงใน localStorage
       if (typeof window !== "undefined") {
@@ -55,7 +55,7 @@ export default function RegisterPage() {
       }
 
       setTimeout(() => {
-        router.push("/");
+        router.push("/assessment");
       }, 1200);
     }, 800);
   };
