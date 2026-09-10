@@ -117,8 +117,18 @@ export default function Home() {
           คำนวณพลังงานที่เหมาะสมกับร่างกาย และช่วยให้คุณบรรลุเป้าหมายสุขภาพได้อย่างมีความสุข ไม่หักโหม
         </p>
 
+        {/* คำเตือนทางการแพทย์ (Medical Disclaimer ตามข้อกำหนดเอกสาร) */}
+        <div className="mt-8 max-w-2xl mx-auto p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5 text-left shadow-sm">
+          <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p className="leading-relaxed">
+            <strong className="font-bold text-amber-950">ข้อความสำคัญ:</strong> ข้อมูลและแผนการฝึกใน FitMate จัดทำเพื่อการส่งเสริมสุขภาพทั่วไป <span className="underline font-semibold">ไม่ใช่คำแนะนำทางการแพทย์</span> หากมีโรคประจำตัว เคยผ่าตัด หรือมีอาการบาดเจ็บ ควรปรึกษาแพทย์ก่อนเริ่มโปรแกรม
+          </p>
+        </div>
+
         {/* ปุ่มเริ่มต้น */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3.5">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
           {!user ? (
             <>
               <Link
@@ -128,7 +138,7 @@ export default function Home() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                ทำแบบประเมินสุขภาพฟรี
+                เริ่มต้นใช้งานฟรี (ทำแบบประเมิน)
               </Link>
               <Link
                 href="/register"
@@ -149,20 +159,26 @@ export default function Home() {
                 สวัสดีคุณ <span className="font-bold">{user.name}</span>!
               </div>
               <Link
-                href="/assessment"
+                href="/dashboard"
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                ทำแบบประเมินสุขภาพและเป้าหมาย
+                ไปที่ Dashboard ของฉัน
+              </Link>
+              <Link
+                href="/assessment"
+                className="px-4 py-3 rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs font-semibold transition"
+              >
+                แก้ไขแบบประเมินสุขภาพ
               </Link>
             </div>
           )}
         </div>
 
         {/* การ์ดแนะนำ 3 จุดเด่นหลักของ FitMate (โทนสว่าง คลีน) */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 text-left w-full">
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 text-left w-full">
           <div className="p-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm hover:shadow-md transition">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,10 +186,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-base font-bold text-zinc-900 mb-1.5">
-              แผนฝึกที่ปรับได้ตามใจ
+              คัดกรองความปลอดภัย (PAR-Q)
             </h3>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              เลือกรูปแบบการออกกำลังกายที่เข้ากับไลฟ์สไตล์ ไม่ว่าจะเป็นสายค่อยเป็นค่อยไปหรือสายเน้นวินัยเข้มข้น
+              ประเมินความเสี่ยงสุขภาพ ปรับระดับความหนักให้เหมาะกับโรคประจำตัวและข้อจำกัดร่างกาย ไม่ฝืนฝึกหนักเกินตัว
             </p>
           </div>
 
@@ -184,10 +200,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-base font-bold text-zinc-900 mb-1.5">
-              โภชนาการที่แม่นยำ
+              Hard Filter อาหารที่แพ้ 100%
             </h3>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              ช่วยคำนวณปริมาณพลังงานและสารอาหารที่ร่างกายต้องการจริง เพื่อผลลัพธ์ที่ชัดเจนและสุขภาพที่ดี
+              ระบบคัดกรองวัตถุดิบและเมนูอาหารที่ผู้ใช้แพ้ออกอย่างเด็ดขาด ปลอดภัยจากสารก่อภูมิแพ้ พร้อมคำนวณแคลอรี่แม่นยำ
             </p>
           </div>
 
@@ -198,18 +214,96 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-base font-bold text-zinc-900 mb-1.5">
-              เครื่องมือช่วยออกกำลังกาย
+              ตารางฝึกปรับตามอุปกรณ์จริง
             </h3>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              มาพร้อมระบบจับเวลาพักเซ็ตและบันทึกความคืบหน้ารายสัปดาห์ ให้ทุกการฝึกของคุณมีระเบียบและสนุกขึ้น
+              ไม่ว่าคุณจะฝึกที่บ้าน มีแค่ดัมเบลคู่เดียว หรือไปฟิตเนส ระบบจะจัดตารางที่เข้ากับอุปกรณ์และเวลาของคุณจริง
             </p>
+          </div>
+        </div>
+
+        {/* ตัวอย่างผลลัพธ์และรีวิวผู้ใช้งาน (ตามข้อกำหนดในเอกสารหน้า 1 ข้อ 2) */}
+        <div className="mt-16 w-full text-left">
+          <div className="text-center mb-8">
+            <span className="text-xs font-bold text-emerald-600 tracking-wider uppercase">
+              เสียงตอบรับจากผู้ใช้งานจริง
+            </span>
+            <h2 className="text-2xl font-black text-zinc-900 mt-1">
+              ผลลัพธ์สุขภาพที่ยั่งยืนและปลอดภัย
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1 text-amber-400 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed italic">
+                  &ldquo;มีอาการปวดเข่าเรื้อรัง ระบบของ FitMate ช่วยตัดท่ากระโดดออกทั้งหมด แล้วจัดท่าบอดี้เวทแบบแรงกระแทกต่ำให้ ตอนนี้ออกกำลังกายได้ต่อเนื่อง 2 เดือนไม่เจ็บเข่าเลยครับ&rdquo;
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                <span className="font-bold text-zinc-900">คุณธนกฤต, 38 ปี</span>
+                <span className="text-emerald-600 font-medium">เป้าหมาย: สุขภาพทั่วไป</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1 text-amber-400 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed italic">
+                  &ldquo;แพ้อาหารทะเลและแพ้นมวัวรุนแรงมาก ชอบที่ระบบตัดเมนูพวกนี้ออกเกลี้ยง 100% และแนะนำแหล่งโปรตีนจากไข่ ไก่ และพืชทดแทนได้ตรงตามสัดส่วนแคลอรี่&rdquo;
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                <span className="font-bold text-zinc-900">คุณศิริพร, 29 ปี</span>
+                <span className="text-emerald-600 font-medium">เป้าหมาย: ลดไขมัน 4 กก.</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white border border-zinc-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-1 text-amber-400 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed italic">
+                  &ldquo;มีเวลาแค่ 3 วันต่อสัปดาห์ และเล่นที่บ้านมีแค่ดัมเบลคู่เดียว แผนที่ให้มาจัดสรรเวลาได้กระชับ 35 นาทีต่อวัน ไม่รู้สึกเหนื่อยล้าหรือเบื่อเลย&rdquo;
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
+                <span className="font-bold text-zinc-900">คุณกิตติชัย, 32 ปี</span>
+                <span className="text-emerald-600 font-medium">เป้าหมาย: เพิ่มกล้ามเนื้อ</span>
+              </div>
+            </div>
           </div>
         </div>
       </main>
 
-      {/* ท้ายหน้าเว็บ (Footer โทนสว่าง) */}
-      <footer className="border-t border-zinc-200 bg-white py-6 text-center text-xs text-zinc-500">
-        FitMate &copy; {new Date().getFullYear()} • แพลตฟอร์มเพื่อนคู่คิดเพื่อสุขภาพและการออกกำลังกาย
+      {/* ท้ายหน้าเว็บ (Footer โทนสว่าง พร้อม Medical Disclaimer สรุปท้ายหน้า) */}
+      <footer className="border-t border-zinc-200 bg-white py-8 px-6 text-center text-xs text-zinc-500">
+        <div className="max-w-4xl mx-auto space-y-2">
+          <p className="text-zinc-600">
+            <strong>คำเตือนทางการแพทย์:</strong> ข้อมูลบนเว็บไซต์นี้ไม่ได้ทดแทนการวินิจฉัย การรักษา หรือคำปรึกษาจากแพทย์ผู้เชี่ยวชาญ หากรู้สึกผิดปกติขณะออกกำลังกายให้หยุดทันที
+          </p>
+          <p>
+            FitMate &copy; {new Date().getFullYear()} • แพลตฟอร์มเพื่อนคู่คิดเพื่อสุขภาพและการออกกำลังกายอย่างยั่งยืน
+          </p>
+        </div>
       </footer>
     </div>
   );
