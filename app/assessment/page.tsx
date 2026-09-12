@@ -135,39 +135,41 @@ export default function AssessmentPage() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          if (parsed.gender) setGender(parsed.gender);
-          if (parsed.birthDate) setBirthDate(parsed.birthDate);
-          if (parsed.age) setAge(parsed.age);
-          if (parsed.height) setHeight(parsed.height);
-          if (parsed.weight) setWeight(parsed.weight);
-          if (parsed.chronicDiseases) setChronicDiseases(parsed.chronicDiseases);
-          if (parsed.otherChronic) setOtherChronic(parsed.otherChronic);
-          if (parsed.pastInjuries) setPastInjuries(parsed.pastInjuries);
-          if (parsed.otherInjury) setOtherInjury(parsed.otherInjury);
-          if (parsed.regularMedications) setRegularMedications(parsed.regularMedications);
-          if (parsed.isPregnantOrNursing !== undefined) setIsPregnantOrNursing(parsed.isPregnantOrNursing);
-          if (parsed.currentActivityLevel) setCurrentActivityLevel(parsed.currentActivityLevel);
-          if (parsed.parqChestPain !== undefined) setParqChestPain(parsed.parqChestPain);
-          if (parsed.parqDoctorWarning !== undefined) setParqDoctorWarning(parsed.parqDoctorWarning);
-          if (parsed.parqDizziness !== undefined) setParqDizziness(parsed.parqDizziness);
+          queueMicrotask(() => {
+            if (parsed.gender) setGender(parsed.gender);
+            if (parsed.birthDate) setBirthDate(parsed.birthDate);
+            if (parsed.age) setAge(parsed.age);
+            if (parsed.height) setHeight(parsed.height);
+            if (parsed.weight) setWeight(parsed.weight);
+            if (parsed.chronicDiseases) setChronicDiseases(parsed.chronicDiseases);
+            if (parsed.otherChronic) setOtherChronic(parsed.otherChronic);
+            if (parsed.pastInjuries) setPastInjuries(parsed.pastInjuries);
+            if (parsed.otherInjury) setOtherInjury(parsed.otherInjury);
+            if (parsed.regularMedications) setRegularMedications(parsed.regularMedications);
+            if (parsed.isPregnantOrNursing !== undefined) setIsPregnantOrNursing(parsed.isPregnantOrNursing);
+            if (parsed.currentActivityLevel) setCurrentActivityLevel(parsed.currentActivityLevel);
+            if (parsed.parqChestPain !== undefined) setParqChestPain(parsed.parqChestPain);
+            if (parsed.parqDoctorWarning !== undefined) setParqDoctorWarning(parsed.parqDoctorWarning);
+            if (parsed.parqDizziness !== undefined) setParqDizziness(parsed.parqDizziness);
 
-          if (parsed.fitnessGoal) setFitnessGoal(parsed.fitnessGoal);
-          if (parsed.targetDuration) setTargetDuration(parsed.targetDuration);
-          if (parsed.workoutIntensity) setWorkoutIntensity(parsed.workoutIntensity);
-          if (parsed.workoutDays) setWorkoutDays(parsed.workoutDays);
-          if (parsed.sessionMinutes) setSessionMinutes(parsed.sessionMinutes);
-          if (parsed.workoutLocation) setWorkoutLocation(parsed.workoutLocation);
-          if (parsed.selectedEquipment) setSelectedEquipment(parsed.selectedEquipment);
-          if (parsed.movementLimits) setMovementLimits(parsed.movementLimits);
+            if (parsed.fitnessGoal) setFitnessGoal(parsed.fitnessGoal);
+            if (parsed.targetDuration) setTargetDuration(parsed.targetDuration);
+            if (parsed.workoutIntensity) setWorkoutIntensity(parsed.workoutIntensity);
+            if (parsed.workoutDays) setWorkoutDays(parsed.workoutDays);
+            if (parsed.sessionMinutes) setSessionMinutes(parsed.sessionMinutes);
+            if (parsed.workoutLocation) setWorkoutLocation(parsed.workoutLocation);
+            if (parsed.selectedEquipment) setSelectedEquipment(parsed.selectedEquipment);
+            if (parsed.movementLimits) setMovementLimits(parsed.movementLimits);
 
-          if (parsed.dietType) setDietType(parsed.dietType);
-          if (parsed.dislikedFoods) setDislikedFoods(parsed.dislikedFoods);
-          if (parsed.otherDisliked) setOtherDisliked(parsed.otherDisliked);
-          if (parsed.foodAllergies) setFoodAllergies(parsed.foodAllergies);
-          if (parsed.otherAllergy) setOtherAllergy(parsed.otherAllergy);
-          if (parsed.supplements) setSupplements(parsed.supplements);
-          if (parsed.foodBudget) setFoodBudget(parsed.foodBudget);
-          if (parsed.mealsPerDay) setMealsPerDay(parsed.mealsPerDay);
+            if (parsed.dietType) setDietType(parsed.dietType);
+            if (parsed.dislikedFoods) setDislikedFoods(parsed.dislikedFoods);
+            if (parsed.otherDisliked) setOtherDisliked(parsed.otherDisliked);
+            if (parsed.foodAllergies) setFoodAllergies(parsed.foodAllergies);
+            if (parsed.otherAllergy) setOtherAllergy(parsed.otherAllergy);
+            if (parsed.supplements) setSupplements(parsed.supplements);
+            if (parsed.foodBudget) setFoodBudget(parsed.foodBudget);
+            if (parsed.mealsPerDay) setMealsPerDay(parsed.mealsPerDay);
+          });
         } catch {
           // ignore
         }
@@ -186,7 +188,7 @@ export default function AssessmentPage() {
         calculatedAge--;
       }
       if (calculatedAge > 10 && calculatedAge < 110) {
-        setAge(calculatedAge);
+        queueMicrotask(() => setAge(calculatedAge));
       }
     }
   }, [birthDate]);
@@ -201,7 +203,7 @@ export default function AssessmentPage() {
   // หากมีธงแดง บังคับปรับระดับความหนักไม่ให้เป็นระดับ "จริงจัง"
   useEffect(() => {
     if (isRedFlag && workoutIntensity === "intense") {
-      setWorkoutIntensity("light");
+      queueMicrotask(() => setWorkoutIntensity("light"));
     }
   }, [isRedFlag, workoutIntensity]);
 

@@ -17,7 +17,8 @@ export default function Home() {
       const stored = localStorage.getItem("fitmate_user");
       if (stored) {
         try {
-          setUser(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          queueMicrotask(() => setUser(parsed));
         } catch {
           // ignore
         }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import LiveWorkoutTrainer from "./LiveWorkoutTrainer";
 
 interface AssessmentData {
   gender: "male" | "female";
@@ -57,7 +57,6 @@ interface ExerciseItem {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"workout" | "nutrition" | "overview">("overview");
@@ -69,6 +68,16 @@ export default function DashboardPage() {
 
   // สถานะติ๊กออกกำลังกายของแต่ละวัน
   const [completedDays, setCompletedDays] = useState<number[]>([]);
+  // สถานะผ่านของแต่ละท่าออกกำลังกาย (key: `${dayIndex}-${exerciseIndex}`)
+  const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
+
+  // โหมดตรวจจับท่าทางด้วย AI (Live AI Workout Mode)
+  const [activeAIDay, setActiveAIDay] = useState<{
+    dayIndex: number;
+    dayTitle: string;
+    exercises: ExerciseItem[];
+    initialIndex?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -76,12 +85,36 @@ export default function DashboardPage() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          setAssessment(parsed);
+          queueMicrotask(() => {
+            setAssessment(parsed);
+            setIsLoading(false);
+          });
         } catch {
-          // parse error
+          queueMicrotask(() => setIsLoading(false));
+        }
+      } else {
+        queueMicrotask(() => setIsLoading(false));
+      }
+
+      const storedDays = localStorage.getItem("fitmate_completed_days");
+      if (storedDays) {
+        try {
+          const parsedDays = JSON.parse(storedDays);
+          queueMicrotask(() => setCompletedDays(parsedDays));
+        } catch {
+          // ignore
         }
       }
-      setIsLoading(false);
+
+      const storedExercises = localStorage.getItem("fitmate_completed_exercises");
+      if (storedExercises) {
+        try {
+          const parsedEx = JSON.parse(storedExercises);
+          queueMicrotask(() => setCompletedExercises(parsedEx));
+        } catch {
+          // ignore
+        }
+      }
     }
   }, []);
 
@@ -90,10 +123,14 @@ export default function DashboardPage() {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerRunning && timerSeconds > 0) {
       interval = setInterval(() => {
-        setTimerSeconds((prev) => prev - 1);
+        setTimerSeconds((prev) => {
+          if (prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
-    } else if (timerSeconds === 0 && isTimerRunning) {
-      setIsTimerRunning(false);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -107,10 +144,41 @@ export default function DashboardPage() {
   };
 
   const handleToggleCompleteDay = (dayIndex: number) => {
+    let next: number[];
     if (completedDays.includes(dayIndex)) {
-      setCompletedDays(completedDays.filter((d) => d !== dayIndex));
+      next = completedDays.filter((d) => d !== dayIndex);
     } else {
-      setCompletedDays([...completedDays, dayIndex]);
+      next = [...completedDays, dayIndex];
+    }
+    setCompletedDays(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fitmate_completed_days", JSON.stringify(next));
+    }
+  };
+
+  // ติ๊กผ่านท่าอัตโนมัติ และถ้าครบทุกท่าของวันนั้นจะติ๊กผ่านวันให้อัตโนมัติทันที
+  const handleCompleteExercise = (
+    dayIndex: number,
+    exIndex: number,
+    dayExercises: ExerciseItem[]
+  ) => {
+    const key = `${dayIndex}-${exIndex}`;
+    const nextEx = { ...completedExercises, [key]: true };
+    setCompletedExercises(nextEx);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fitmate_completed_exercises", JSON.stringify(nextEx));
+    }
+
+    // ตรวจสอบว่าครบทุกท่าของวันนั้นหรือยัง
+    const allDone = dayExercises.every(
+      (_, idx) => idx === exIndex || nextEx[`${dayIndex}-${idx}`]
+    );
+    if (allDone && !completedDays.includes(dayIndex)) {
+      const nextDays = [...completedDays, dayIndex];
+      setCompletedDays(nextDays);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("fitmate_completed_days", JSON.stringify(nextDays));
+      }
     }
   };
 
@@ -178,7 +246,6 @@ export default function DashboardPage() {
   // สร้างตารางออกกำลังกายแบบคัดกรองความปลอดภัย (Safety Workout Split)
   const generatePersonalizedWorkoutDays = () => {
     const daysCount = assessment.workoutDays || 3;
-    const isHome = assessment.workoutLocation === "home";
     const hasDumbbell = assessment.selectedEquipment.includes("dumbbells");
     const isGym = assessment.workoutLocation === "gym";
 
@@ -418,7 +485,6 @@ export default function DashboardPage() {
     const isNoSeafood = allergies.includes("seafood");
     const isNoPeanuts = allergies.includes("peanuts");
     const isNoDairy = allergies.includes("dairy");
-    const isNoGluten = allergies.includes("gluten");
     const isNoEgg = allergies.includes("egg");
     const isNoSoy = allergies.includes("soy");
 
@@ -831,59 +897,132 @@ export default function DashboardPage() {
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleToggleCompleteDay(dayIndex)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 ${
-                          isCompleted
-                            ? "bg-emerald-500 border-emerald-600 text-white"
-                            : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-                        }`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveAIDay({
+                              dayIndex,
+                              dayTitle: day.dayTitle,
+                              exercises: day.exercises,
+                              initialIndex: 0,
+                            })
+                          }
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 transition flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          <span>เปิดโหมดจับท่า AI</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCompleteDay(dayIndex)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 ${
+                            isCompleted
+                              ? "bg-emerald-500 border-emerald-600 text-white"
+                              : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
+                          }`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}
+                        </button>
+                      </div>
                     </div>
 
                     {/* ตารางท่าออกกำลังกาย */}
                     <div className="space-y-2.5">
-                      {day.exercises.map((ex, exIndex) => (
-                        <div
-                          key={exIndex}
-                          className="p-3.5 rounded-2xl bg-slate-50/80 border border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                        >
-                          <div>
-                            <div className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                              <span>{ex.name}</span>
-                              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
-                                {ex.tag}
-                              </span>
+                      {day.exercises.map((ex, exIndex) => {
+                        const isExCompleted = Boolean(
+                          completedExercises[`${dayIndex}-${exIndex}`]
+                        );
+                        return (
+                          <div
+                            key={exIndex}
+                            className={`p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                              isExCompleted
+                                ? "bg-emerald-50/40 border-emerald-300"
+                                : "bg-slate-50/80 border-zinc-200/80"
+                            }`}
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-zinc-900 flex items-center gap-2">
+                                <span>{ex.name}</span>
+                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                                  {ex.tag}
+                                </span>
+                                {isExCompleted && (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-fade-in">
+                                    <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    ผ่านแล้ว
+                                  </span>
+                                )}
+                              </div>
+                              {ex.note && (
+                                <p className="text-[11px] text-amber-700 mt-1 font-medium">
+                                  * {ex.note}
+                                </p>
+                              )}
                             </div>
-                            {ex.note && (
-                              <p className="text-[11px] text-amber-700 mt-1 font-medium">
-                                * {ex.note}
-                              </p>
-                            )}
-                          </div>
 
-                          <div className="flex items-center gap-4 text-xs font-mono text-zinc-600 shrink-0">
-                            <div>
-                              <span className="text-zinc-400 text-[10px]">เซ็ต:</span>{" "}
-                              <strong className="text-zinc-900 font-bold">{ex.sets}</strong>
-                            </div>
-                            <div>
-                              <span className="text-zinc-400 text-[10px]">ครั้ง:</span>{" "}
-                              <strong className="text-zinc-900 font-bold">{ex.reps}</strong>
-                            </div>
-                            <div>
-                              <span className="text-zinc-400 text-[10px]">พัก:</span>{" "}
-                              <strong className="text-zinc-900 font-bold">{ex.rest}</strong>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="flex items-center gap-4 text-xs font-mono text-zinc-600">
+                                <div>
+                                  <span className="text-zinc-400 text-[10px]">เซ็ต:</span>{" "}
+                                  <strong className="text-zinc-900 font-bold">{ex.sets}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-zinc-400 text-[10px]">ครั้ง:</span>{" "}
+                                  <strong className="text-zinc-900 font-bold">{ex.reps}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-zinc-400 text-[10px]">พัก:</span>{" "}
+                                  <strong className="text-zinc-900 font-bold">{ex.rest}</strong>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActiveAIDay({
+                                    dayIndex,
+                                    dayTitle: day.dayTitle,
+                                    exercises: day.exercises,
+                                    initialIndex: exIndex,
+                                  })
+                                }
+                                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm ${
+                                  isExCompleted
+                                    ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                                    : "bg-white border-zinc-200 hover:border-emerald-500 hover:text-emerald-600 text-zinc-700"
+                                }`}
+                                title={isExCompleted ? "ฝึกซ้ำด้วย AI" : "เปิดกล้องจับท่า AI เฉพาะท่านี้"}
+                              >
+                                {isExCompleted ? (
+                                  <>
+                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>ฝึกซ้ำ</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>ฝึกด้วย AI</span>
+                                  </>
+                                )}
+                              </button>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -968,6 +1107,29 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* โมดอลจับท่าทางด้วย AI แบบเรียลไทม์ (Live AI Workout Trainer) */}
+      {activeAIDay && (
+        <LiveWorkoutTrainer
+          dayTitle={activeAIDay.dayTitle}
+          exercises={activeAIDay.exercises}
+          initialExerciseIndex={activeAIDay.initialIndex || 0}
+          workoutIntensity={assessment.workoutIntensity}
+          onClose={() => setActiveAIDay(null)}
+          onCompleteExercise={(exIdx) => {
+            handleCompleteExercise(
+              activeAIDay.dayIndex,
+              exIdx,
+              activeAIDay.exercises
+            );
+          }}
+          onCompleteDay={() => {
+            if (!completedDays.includes(activeAIDay.dayIndex)) {
+              handleToggleCompleteDay(activeAIDay.dayIndex);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
