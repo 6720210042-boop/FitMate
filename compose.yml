@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: fitmate-app:latest
+    image: 6720210042/fitmate-app:main
     container_name: fitmate-app
     restart: unless-stopped
     ports:
