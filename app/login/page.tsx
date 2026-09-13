@@ -26,23 +26,68 @@ export default function LoginPage() {
       return;
     }
 
-    // จำลองการตรวจสอบสิทธิ์
     setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...");
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "fitmate_user",
-          JSON.stringify({ email, name: email.split("@")[0], loggedIn: true })
-        );
+      const normalizedEmail = email.toLowerCase().trim();
+      let matchedName = normalizedEmail.split("@")[0];
+      let isAuthenticated = false;
+
+      // 1. ตรวจสอบกรณีใช้บัญชี Demo
+      if (normalizedEmail === "demo@fitmate.app" && password === "12345678") {
+        matchedName = "Demo User";
+        isAuthenticated = true;
+      } else if (typeof window !== "undefined") {
+        // 2. ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ
+        let accounts: Array<{ name: string; email: string; password: string }> = [];
+        try {
+          const stored = localStorage.getItem("fitmate_accounts");
+          if (stored) accounts = JSON.parse(stored);
+        } catch {
+          accounts = [];
+        }
+
+        const found = accounts.find((a) => a.email === normalizedEmail);
+        if (found) {
+          if (found.password === password) {
+            matchedName = found.name;
+            isAuthenticated = true;
+          } else {
+            setIsLoading(false);
+            setErrorMessage("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+            return;
+          }
+        } else if (accounts.length === 0) {
+          // หากยังไม่มีการบันทึกบัญชีใดๆ ในเครื่อง ให้เข้าสู่ระบบได้เพื่อความสะดวก
+          isAuthenticated = true;
+        } else {
+          setIsLoading(false);
+          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิก หรือกด 'ใช้บัญชีทดสอบ'");
+          return;
+        }
       }
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
-    }, 800);
+
+      if (isAuthenticated) {
+        setIsLoading(false);
+        setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...");
+
+        let hasAssessment = false;
+        if (typeof window !== "undefined") {
+          localStorage.setItem(
+            "fitmate_user",
+            JSON.stringify({ email: normalizedEmail, name: matchedName, loggedIn: true })
+          );
+          hasAssessment = !!localStorage.getItem("fitmate_assessment");
+        }
+
+        setTimeout(() => {
+          // หากมีข้อมูลประเมินแล้วให้ไปที่แดชบอร์ดทันที หากยังไม่มีให้ไปทำแบบประเมิน
+          router.push(hasAssessment ? "/dashboard" : "/assessment");
+        }, 1000);
+      }
+    }, 600);
   };
 
   const fillDemo = () => {
+    setErrorMessage("");
     setEmail("demo@fitmate.app");
     setPassword("12345678");
   };

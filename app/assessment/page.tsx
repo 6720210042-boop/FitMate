@@ -106,8 +106,8 @@ export default function AssessmentPage() {
   const [parqDoctorWarning, setParqDoctorWarning] = useState<boolean>(false);
   const [parqDizziness, setParqDizziness] = useState<boolean>(false);
 
-  // --- STEP 2: แผนและเป้าหมายการออกกำลังกาย ---
-  const [fitnessGoal, setFitnessGoal] = useState<string>("fat_loss");
+  // --- STEP 2: แผนและเป้าหมายการออกกำลังกาย (เลือกได้หลายเป้าหมาย) ---
+  const [fitnessGoals, setFitnessGoals] = useState<string[]>(["fat_loss"]);
   const [targetDuration, setTargetDuration] = useState<string>("3_months");
   const [workoutIntensity, setWorkoutIntensity] = useState<string>("moderate");
   const [workoutDays, setWorkoutDays] = useState<number>(3);
@@ -128,6 +128,8 @@ export default function AssessmentPage() {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  const [hasExistingAssessment, setHasExistingAssessment] = useState(false);
+
   // โหลดข้อมูลเดิมถ้าเคยกรอกไว้แล้ว
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -136,6 +138,7 @@ export default function AssessmentPage() {
         try {
           const parsed = JSON.parse(stored);
           queueMicrotask(() => {
+            setHasExistingAssessment(true);
             if (parsed.gender) setGender(parsed.gender);
             if (parsed.birthDate) setBirthDate(parsed.birthDate);
             if (parsed.age) setAge(parsed.age);
@@ -152,11 +155,15 @@ export default function AssessmentPage() {
             if (parsed.parqDoctorWarning !== undefined) setParqDoctorWarning(parsed.parqDoctorWarning);
             if (parsed.parqDizziness !== undefined) setParqDizziness(parsed.parqDizziness);
 
-            if (parsed.fitnessGoal) setFitnessGoal(parsed.fitnessGoal);
+            if (parsed.fitnessGoals && Array.isArray(parsed.fitnessGoals)) {
+              setFitnessGoals(parsed.fitnessGoals);
+            } else if (parsed.fitnessGoal) {
+              setFitnessGoals([parsed.fitnessGoal]);
+            }
             if (parsed.targetDuration) setTargetDuration(parsed.targetDuration);
             if (parsed.workoutIntensity) setWorkoutIntensity(parsed.workoutIntensity);
             if (parsed.workoutDays) setWorkoutDays(parsed.workoutDays);
-            if (parsed.sessionMinutes) setSessionMinutes(parsed.sessionMinutes);
+            if (parsed.sessionMinutes) setSessionMinutes(Math.max(30, parsed.sessionMinutes));
             if (parsed.workoutLocation) setWorkoutLocation(parsed.workoutLocation);
             if (parsed.selectedEquipment) setSelectedEquipment(parsed.selectedEquipment);
             if (parsed.movementLimits) setMovementLimits(parsed.movementLimits);
@@ -245,16 +252,34 @@ export default function AssessmentPage() {
   };
   const tdee = Math.round(bmr * (activityMultipliers[currentActivityLevel] || 1.375));
 
-  // ปรับแคลอรี่ตามเป้าหมาย
+  // ปรับแคลอรี่ตามเป้าหมาย (คำนวณแบบผสมผสานเมื่อเลือกหลายข้อ)
   let calorieAdjustment = 0;
-  if (fitnessGoal === "fat_loss") calorieAdjustment = -450;
-  if (fitnessGoal === "muscle_gain") calorieAdjustment = 300;
+  const isFatLoss = fitnessGoals.includes("fat_loss");
+  const isMuscleGain = fitnessGoals.includes("muscle_gain");
+  if (isFatLoss && isMuscleGain) {
+    calorieAdjustment = -200; // สร้างกล้ามเนื้อควบคู่ลดไขมัน (Body Recomposition)
+  } else if (isFatLoss) {
+    calorieAdjustment = -450;
+  } else if (isMuscleGain) {
+    calorieAdjustment = 300;
+  }
   const targetCalories = Math.max(1200, tdee + calorieAdjustment);
 
   // คำนวณโปรตีนเป้าหมาย (1.6 - 2.0g ต่อน้ำหนักตัว)
   const targetProteinGrams = Math.round(
-    fitnessGoal === "muscle_gain" ? numericWeight * 2.0 : numericWeight * 1.6
+    isMuscleGain ? numericWeight * 2.0 : numericWeight * 1.6
   );
+
+  // ฟังก์ชันสลับการเลือกเป้าหมาย (Multi-select: เลือกได้หลายอัน แต่คงไว้อย่างน้อย 1 ข้อ)
+  const toggleFitnessGoal = (id: string) => {
+    if (fitnessGoals.includes(id)) {
+      if (fitnessGoals.length > 1) {
+        setFitnessGoals(fitnessGoals.filter((g) => g !== id));
+      }
+    } else {
+      setFitnessGoals([...fitnessGoals, id]);
+    }
+  };
 
   // ฟังก์ชันสลับการเลือกใน Checklist
   const toggleSelection = (
@@ -273,6 +298,41 @@ export default function AssessmentPage() {
     } else {
       setList([...filtered, itemId]);
     }
+  };
+
+  // ฟังก์ชันกรอกข้อมูลตัวอย่างด่วนสำหรับการทดสอบ / เดโม
+  const fillQuickDemo = () => {
+    setGender("male");
+    setBirthDate("1999-05-15");
+    setAge(27);
+    setHeight(175);
+    setWeight(70);
+    setChronicDiseases(["none"]);
+    setOtherChronic("");
+    setPastInjuries(["none"]);
+    setOtherInjury("");
+    setRegularMedications("");
+    setIsPregnantOrNursing(false);
+    setCurrentActivityLevel("occasional");
+    setParqChestPain(false);
+    setParqDoctorWarning(false);
+    setParqDizziness(false);
+    setFitnessGoals(["fat_loss", "muscle_gain"]);
+    setTargetDuration("12_weeks");
+    setWorkoutIntensity("moderate");
+    setWorkoutDays(3);
+    setSessionMinutes(45);
+    setWorkoutLocation("home");
+    setSelectedEquipment(["bodyweight", "dumbbells"]);
+    setMovementLimits(["none"]);
+    setDietType("general");
+    setDislikedFoods(["none"]);
+    setOtherDisliked("");
+    setFoodAllergies(["none"]);
+    setOtherAllergy("");
+    setSupplements(["whey"]);
+    setFoodBudget("medium");
+    setMealsPerDay(3);
   };
 
   // บันทึกข้อมูลและไปยังหน้า Dashboard
@@ -300,7 +360,8 @@ export default function AssessmentPage() {
       parqDoctorWarning,
       parqDizziness,
       isRedFlag,
-      fitnessGoal,
+      fitnessGoals,
+      fitnessGoal: fitnessGoals[0] || "fat_loss",
       targetDuration,
       workoutIntensity,
       workoutDays,
@@ -348,6 +409,14 @@ export default function AssessmentPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            {hasExistingAssessment && (
+              <Link
+                href="/dashboard"
+                className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-semibold"
+              >
+                ไปยัง Dashboard ของฉัน
+              </Link>
+            )}
             <span className="text-xs text-zinc-500 hidden sm:inline">
               ขั้นตอนที่ {step} จาก 4
             </span>
@@ -396,6 +465,23 @@ export default function AssessmentPage() {
               <p className="mt-2 text-xs sm:text-sm text-zinc-600 max-w-xl mx-auto">
                 ข้อมูลเหล่านี้จำเป็นอย่างยิ่งในการคำนวณความหนักของการฝึก คัดกรองท่าอันตราย และวางแผนโภชนาการ
               </p>
+            </div>
+
+            {/* กล่องกรอกข้อมูลตัวอย่างด่วน */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs shadow-sm">
+              <div className="flex items-center gap-2 text-emerald-900">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-medium">
+                  ต้องการทดสอบระบบอย่างรวดเร็วโดยไม่ต้องพิมพ์ทีละช่อง?
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={fillQuickDemo}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-sm shrink-0"
+              >
+                กรอกข้อมูลตัวอย่างด่วน (Quick Demo)
+              </button>
             </div>
 
             {/* ข้อมูลพื้นฐาน */}
@@ -791,11 +877,16 @@ export default function AssessmentPage() {
             </div>
 
             <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
-              {/* เป้าหมายหลัก */}
+              {/* เป้าหมายหลัก (เลือกได้มากกว่า 1 ข้อ) */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-2">
-                  เป้าหมายที่คุณต้องการมุ่งเน้น
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-zinc-700">
+                    เป้าหมายที่คุณต้องการมุ่งเน้น <span className="text-emerald-600 font-normal">(เลือกได้หลายอันตามที่ต้องการ)</span>
+                  </label>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    เลือกแล้ว {fitnessGoals.length} ข้อ
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {[
                     { id: "fat_loss", title: "ลดน้ำหนัก / ลดไขมัน", desc: "เน้นคุมแคลอรี่และเบิร์นไขมัน" },
@@ -803,21 +894,35 @@ export default function AssessmentPage() {
                     { id: "endurance", title: "เพิ่มความฟิต / อึด", desc: "เพิ่มความทนทานระบบหัวใจและปอด" },
                     { id: "rehab", title: "ฟื้นฟูร่างกาย", desc: "กายภาพเบาๆ บรรเทาอาการเมื่อยล้า" },
                     { id: "general_health", title: "สุขภาพทั่วไป", desc: "เคลื่อนไหวร่างกายให้กระฉับกระเฉง" },
-                  ].map((goal) => (
-                    <button
-                      key={goal.id}
-                      type="button"
-                      onClick={() => setFitnessGoal(goal.id)}
-                      className={`p-3 rounded-2xl border text-left transition ${
-                        fitnessGoal === goal.id
-                          ? "border-emerald-500 bg-emerald-50/80 shadow-sm"
-                          : "border-zinc-200 bg-white hover:bg-zinc-50"
-                      }`}
-                    >
-                      <div className="text-xs font-bold text-zinc-900">{goal.title}</div>
-                      <div className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{goal.desc}</div>
-                    </button>
-                  ))}
+                  ].map((goal) => {
+                    const isSelected = fitnessGoals.includes(goal.id);
+                    return (
+                      <button
+                        key={goal.id}
+                        type="button"
+                        onClick={() => toggleFitnessGoal(goal.id)}
+                        className={`p-3.5 rounded-2xl border text-left transition relative ${
+                          isSelected
+                            ? "border-emerald-500 bg-emerald-50/90 shadow-sm ring-1 ring-emerald-500"
+                            : "border-zinc-200 bg-white hover:bg-zinc-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-bold text-zinc-900">{goal.title}</div>
+                          <div
+                            className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black transition ${
+                              isSelected
+                                ? "bg-emerald-500 text-white"
+                                : "border border-zinc-300 bg-zinc-50 text-transparent"
+                            }`}
+                          >
+                            ✓
+                          </div>
+                        </div>
+                        <div className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{goal.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -933,11 +1038,16 @@ export default function AssessmentPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-700 mb-2">
-                    เวลาต่อครั้ง (นาที)
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-zinc-700">
+                      เวลาต่อครั้ง (นาที)
+                    </label>
+                    <span className="text-[11px] text-emerald-600 font-medium">
+                      อย่างต่ำ 30 นาที
+                    </span>
+                  </div>
                   <div className="flex gap-2">
-                    {[20, 30, 45, 60].map((mins) => (
+                    {[30, 45, 60, 90].map((mins) => (
                       <button
                         key={mins}
                         type="button"
