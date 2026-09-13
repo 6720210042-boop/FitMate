@@ -26,6 +26,7 @@ interface AssessmentData {
   parqDoctorWarning: boolean;
   parqDizziness: boolean;
   isRedFlag: boolean;
+  fitnessGoals?: string[];
   fitnessGoal: string;
   targetDuration: string;
   workoutIntensity: string;
@@ -59,7 +60,8 @@ interface ExerciseItem {
 export default function DashboardPage() {
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"workout" | "nutrition" | "overview">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "workout" | "nutrition">("overview");
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
 
   // ระบบจับเวลาพักเซ็ต (Rest Timer)
   const [timerSeconds, setTimerSeconds] = useState(60);
@@ -111,6 +113,16 @@ export default function DashboardPage() {
         try {
           const parsedEx = JSON.parse(storedExercises);
           queueMicrotask(() => setCompletedExercises(parsedEx));
+        } catch {
+          // ignore
+        }
+      }
+
+      const storedUser = localStorage.getItem("fitmate_user");
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          queueMicrotask(() => setCurrentUser(parsedUser));
         } catch {
           // ignore
         }
@@ -182,6 +194,71 @@ export default function DashboardPage() {
     }
   };
 
+  // โหลดข้อมูลแผนตัวอย่างทันทีสำหรับการทดสอบ / พรีเซนต์
+  const loadDemoAssessment = () => {
+    const demoData: AssessmentData = {
+      gender: "male",
+      birthDate: "1999-05-15",
+      age: 27,
+      height: 175,
+      weight: 70,
+      bmi: 22.9,
+      bmr: 1675,
+      tdee: 2303,
+      targetCalories: 1853,
+      targetProteinGrams: 112,
+      chronicDiseases: ["none"],
+      pastInjuries: ["none"],
+      currentActivityLevel: "occasional",
+      parqChestPain: false,
+      parqDoctorWarning: false,
+      parqDizziness: false,
+      isRedFlag: false,
+      fitnessGoals: ["fat_loss", "muscle_gain"],
+      fitnessGoal: "fat_loss",
+      targetDuration: "12_weeks",
+      workoutIntensity: "moderate",
+      workoutDays: 3,
+      sessionMinutes: 45,
+      workoutLocation: "home",
+      selectedEquipment: ["bodyweight", "dumbbells"],
+      movementLimits: ["none"],
+      dietType: "general",
+      dislikedFoods: ["none"],
+      foodAllergies: ["none"],
+      supplements: ["whey"],
+      foodBudget: "medium",
+      mealsPerDay: 3,
+      updatedAt: new Date().toISOString(),
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fitmate_assessment", JSON.stringify(demoData));
+    }
+    setAssessment(demoData);
+  };
+
+  // รีเซ็ตข้อมูลแผนสุขภาพทั้งหมดเพื่อเริ่มใหม่
+  const handleResetAllData = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("คุณต้องการล้างข้อมูลแผนสุขภาพในเครื่องทั้งหมดเพื่อเริ่มต้นใหม่ใช่หรือไม่?");
+      if (confirmed) {
+        localStorage.removeItem("fitmate_assessment");
+        localStorage.removeItem("fitmate_completed_days");
+        localStorage.removeItem("fitmate_completed_exercises");
+        setAssessment(null);
+        setCompletedDays([]);
+        setCompletedExercises({});
+      }
+    }
+  };
+
+  // พิมพ์ / บันทึกเป็น PDF
+  const handlePrintPlan = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-zinc-600 text-sm">
@@ -206,14 +283,26 @@ export default function DashboardPage() {
           <p className="text-xs text-zinc-600 leading-relaxed">
             เพื่อให้ FitMate คำนวณแคลอรี่ที่แม่นยำ และจัดโปรแกรมออกกำลังกายที่ปลอดภัยเฉพาะคุณ กรุณาทำแบบประเมินสุขภาพก่อนเริ่มต้นใช้งาน
           </p>
-          <Link
-            href="/assessment"
-            className="block w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition"
-          >
-            ทำแบบประเมินสุขภาพตอนนี้
-          </Link>
-          <Link href="/" className="block text-xs text-zinc-500 hover:underline">
-            กลับหน้าหลัก
+          <div className="space-y-2.5 pt-2">
+            <Link
+              href="/assessment"
+              className="block w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              ทำแบบประเมินสุขภาพตอนนี้ (4 ขั้นตอน)
+            </Link>
+            <button
+              type="button"
+              onClick={loadDemoAssessment}
+              className="block w-full py-3 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition"
+            >
+              ⚡ โหลดข้อมูลแผนตัวอย่างด่วน (Quick Demo Plan)
+            </button>
+          </div>
+          <Link href="/" className="block text-xs text-zinc-500 hover:underline pt-2">
+            &larr; กลับหน้าหลัก
           </Link>
         </div>
       </div>
@@ -571,7 +660,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-zinc-900 selection:bg-emerald-500 selection:text-white pb-24 relative">
       {/* แถบนำทางด้านบน */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 py-3.5">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 py-3.5 print:hidden">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 font-black text-white text-base shadow-sm">
@@ -582,16 +671,43 @@ export default function DashboardPage() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {currentUser && (
+              <span className="hidden md:inline text-xs text-zinc-600 font-medium">
+                คุณ <span className="font-bold text-zinc-900">{currentUser.name}</span>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={handlePrintPlan}
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
+              title="พิมพ์หรือบันทึกเป็น PDF"
+            >
+              <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span className="hidden sm:inline">พิมพ์ / PDF</span>
+            </button>
+
             <Link
               href="/assessment"
-              className="px-3.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
             >
               <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              แก้ไขข้อมูลแบบประเมิน
+              <span className="hidden sm:inline">แก้ไขข้อมูล</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleResetAllData}
+              className="px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition"
+              title="ล้างข้อมูลแผนเพื่อเริ่มใหม่"
+            >
+              รีเซ็ต
+            </button>
           </div>
         </div>
       </header>
@@ -628,9 +744,19 @@ export default function DashboardPage() {
         <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 pb-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                เป้าหมายหลัก: {goalLabels[assessment.fitnessGoal] || "ดูแลสุขภาพทั่วไป"}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {((assessment.fitnessGoals && assessment.fitnessGoals.length > 0)
+                  ? assessment.fitnessGoals
+                  : [assessment.fitnessGoal]
+                ).map((g) => (
+                  <div
+                    key={g}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    เป้าหมาย: {goalLabels[g] || g}
+                  </div>
+                ))}
               </div>
               <h1 className="text-2xl font-black text-zinc-950">
                 แดชบอร์ดสุขภาพและแผนประจำวันของคุณ
