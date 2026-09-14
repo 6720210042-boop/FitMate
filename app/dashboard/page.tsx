@@ -367,9 +367,12 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={loadDemoAssessment}
-              className="block w-full py-3 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition"
+              className="w-full py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 font-bold text-sm transition flex items-center justify-center gap-2"
             >
-              ⚡ โหลดข้อมูลแผนตัวอย่างด่วน (Quick Demo Plan)
+              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>โหลดข้อมูลแผนตัวอย่างด่วน (Quick Demo Plan)</span>
             </button>
           </div>
           <Link href="/" className="block text-xs text-zinc-500 hover:underline pt-2">
@@ -504,10 +507,10 @@ export default function DashboardPage() {
         sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
         reps: "10-12 ครั้ง",
         rest: "60-90 วิ",
-        tag: isChestFocus ? "กล้ามเนื้ออก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (ฟิตเนส)",
+        tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (ฟิตเนส)",
         safetyCue: "ปรับเบาะให้แนวแรงอยู่ระดับกึ่งกลางอก ดันขึ้นบีบอก ไม่กางศอกเกิน 90 องศา",
         isTargetFocus: isChestFocus,
-        note: isChestFocus ? "⭐ เพิ่มจำนวนเซ็ตเพื่อขยายมิติกล้ามเนื้ออกตามหุ่นต้นแบบ" : undefined,
+        note: isChestFocus ? "เพิ่มจำนวนเซ็ตเพื่อขยายมิติกล้ามเนื้ออกตามหุ่นต้นแบบ" : undefined,
       });
     } else if (isOutdoor1) {
       day1Exercises.push({
@@ -520,7 +523,7 @@ export default function DashboardPage() {
         sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10-15 ครั้ง",
         rest: "60 วิ",
-        tag: isChestFocus ? "กล้ามเนื้ออก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "อกและแขน (กลางแจ้ง)",
+        tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "อกและแขน (กลางแจ้ง)",
         safetyCue: "ลำตัวเป็นแผ่นตรง แขม่วหน้าท้อง มือวางกว้างกว่าไหล่เล็กน้อย",
         isTargetFocus: isChestFocus,
       });
@@ -534,7 +537,7 @@ export default function DashboardPage() {
             sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
             reps: "10-12 ครั้ง",
             rest: "60-90 วิ",
-            tag: isChestFocus ? "กล้ามเนื้ออก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (เซฟข้อไหล่)",
+            tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (เซฟข้อไหล่)",
             safetyCue: "ข้อศอกแตะพื้นเบาๆ ป้องกันข้อต่อหัวไหล่เปิดเกิน 90 องศา",
             isTargetFocus: isChestFocus,
             note: "ปลอดภัยสำหรับผู้ที่มีอาการเจ็บหัวไหล่",
@@ -546,7 +549,7 @@ export default function DashboardPage() {
             sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
             reps: "10-12 ครั้ง",
             rest: "60-90 วิ",
-            tag: isChestFocus ? "กล้ามเนื้ออก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออกและแขน",
+            tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออกและแขน",
             safetyCue: "ดึงสะบักลงชิดกัน ศอกทำมุมเฉียง 45 องศากับลำตัว ไม่กางข้อศอกเสมอไหล่",
             isTargetFocus: isChestFocus,
           });
@@ -560,7 +563,7 @@ export default function DashboardPage() {
           sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
           reps: userExp === "beginner" ? "8-10 ครั้ง" : "12-15 ครั้ง",
           rest: "60 วิ",
-          tag: isChestFocus ? "กล้ามเนื้ออก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "อก แขน และแกนกลาง",
+          tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "อก แขน และแกนกลาง",
           safetyCue: "เกร็งหน้าท้อง ลำตัวเป็นเส้นตรงจากศีรษะถึงส้นเท้า สะโพกไม่ย้อย",
           isTargetFocus: isChestFocus,
         });
@@ -575,10 +578,10 @@ export default function DashboardPage() {
         sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10-12 ครั้ง",
         rest: "60-90 วิ",
-        tag: isBackFocus ? "หลังและปีก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "ปีกหลัง & V-Shape (ฟิตเนส)",
+        tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "ปีกหลัง & V-Shape (ฟิตเนส)",
         safetyCue: "ยืดอก ดึงบาร์ลงมาระดับไหปลาร้า บีบสะบักเข้าหากันแน่นๆ ไม่เอนตัวเหวี่ยง",
         isTargetFocus: isBackFocus,
-        note: isBackFocus ? "⭐ ท่าหลักในการสร้างปีกหลังตัว V ให้เอวดูคอดลง" : undefined,
+        note: isBackFocus ? "ท่าหลักในการสร้างปีกหลังตัว V ให้เอวดูคอดลง" : undefined,
       });
     } else if (isOutdoor1) {
       day1Exercises.push({
@@ -587,7 +590,7 @@ export default function DashboardPage() {
         sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "8-12 ครั้ง",
         rest: "60 วิ",
-        tag: isBackFocus ? "หลังและปีก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบน & สะบัก (กลางแจ้ง)",
+        tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบน & สะบัก (กลางแจ้ง)",
         safetyCue: "จับบาร์หรือพาดผ้าขนหนูกับเสา ลำตัวตรง ดึงอกเข้าหาบาร์ บีบสะบักแน่น",
         isTargetFocus: isBackFocus,
       });
@@ -602,7 +605,7 @@ export default function DashboardPage() {
           sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
           reps: "10-12 ครั้ง",
           rest: "60 วิ",
-          tag: isBackFocus ? "หลังและปีก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและปีกหลัง",
+          tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและปีกหลัง",
           safetyCue: hasBackIssue
             ? "แนบอกกับเบาะตลอดเวลา ขจัดแรงกดที่กระดูกสันหลังส่วนล่าง 100%"
             : "รักษาหลังตรงขนาน ดึงข้อศอกเข้าหาสะโพก ไม่เหวี่ยงลำตัว",
@@ -616,7 +619,7 @@ export default function DashboardPage() {
           sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
           reps: "10-12 ครั้ง (ค้าง 2 วิ)",
           rest: "45 วิ",
-          tag: isBackFocus ? "หลังและปีก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและกล้ามเนื้อปรับบุคลิกภาพ",
+          tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและกล้ามเนื้อปรับบุคลิกภาพ",
           safetyCue: "บีบสะบักเข้าหากันแน่นๆ มองลงพื้น ไม่เงยหน้า เพื่อเซฟกระดูกต้นคอ",
           isTargetFocus: isBackFocus,
         });
@@ -633,7 +636,7 @@ export default function DashboardPage() {
         sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "12-15 ครั้ง",
         rest: "45-60 วิ",
-        tag: isShoulderFocus ? "ไหล่และแขน (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง (ฟิตเนส)",
+        tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง (ฟิตเนส)",
         safetyCue: "ดึงสายเคเบิลขึ้นเสมอไหล่ ข้อศอกงอเล็กน้อย ห้ามยักคอ",
         isTargetFocus: isShoulderFocus,
       });
@@ -644,7 +647,7 @@ export default function DashboardPage() {
         sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10-12 ครั้ง",
         rest: "45 วิ",
-        tag: isShoulderFocus ? "ไหล่และแขน (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หลังแขนและไหล่ (กลางแจ้ง)",
+        tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หลังแขนและไหล่ (กลางแจ้ง)",
         safetyCue: "วางมือบนขอบม้านั่ง หลังชิดม้านั่ง งอศอก 90 องศาแล้วดันตัวขึ้น",
         isTargetFocus: isShoulderFocus,
       });
@@ -670,7 +673,7 @@ export default function DashboardPage() {
           sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
           reps: "12-15 ครั้ง",
           rest: "45-60 วิ",
-          tag: isShoulderFocus ? "ไหล่และแขน (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง",
+          tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง",
           safetyCue: "ยกดัมเบลขึ้นเสมอระดับไหล่ ข้อศอกงอเล็กน้อย ห้ามเหวี่ยงลำตัวหรือยักคอ",
           isTargetFocus: isShoulderFocus,
         });
@@ -685,7 +688,7 @@ export default function DashboardPage() {
         sets: isAbsFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10 ครั้ง/ข้าง",
         rest: "45 วิ",
-        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางลำตัวปลอดภัย (หมอนรองกระดูก)",
+        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางลำตัวปลอดภัย (หมอนรองกระดูก)",
         safetyCue: "เกร็งหน้าท้อง ลำตัวขนานพื้น แขนและขาเหยียดเป็นแนวระนาบ ไม่แอ่นหลัง",
         isTargetFocus: isAbsFocus,
         note: "ท่ากายภาพบำบัดมาตรฐานสากล ลดอาการปวดหลัง",
@@ -699,7 +702,7 @@ export default function DashboardPage() {
         sets: isAbsFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: isOutdoor1 ? "12-15 ครั้ง" : userExp === "beginner" ? "20-30 วินาที" : "40-60 วินาที",
         rest: "45 วิ",
-        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางและความมั่นคง",
+        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางและความมั่นคง",
         safetyCue: "เกร็งหน้าท้องและบีบก้น ดันอกห่างพื้น ไม่ทิ้งสะโพกต่ำหรือยกสูงเกินไป",
         isTargetFocus: isAbsFocus,
       });
@@ -774,7 +777,7 @@ export default function DashboardPage() {
         sets: isGluteFocus ? "5 เซ็ต (โฟกัสพิเศษ)" : "4 เซ็ต",
         reps: "12-15 ครั้ง",
         rest: "45 วิ",
-        tag: isGluteFocus ? "ก้นและสะโพก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "สะโพกและต้นขาด้านหลัง (Low Impact เซฟเข่า 100%)",
+        tag: isGluteFocus ? "ก้นและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "สะโพกและต้นขาด้านหลัง (Low Impact เซฟเข่า 100%)",
         safetyCue: "ใช้แรงผลักจากส้นเท้า บีบก้นแน่นที่จุดบนสุด ไร้แรงกดทับที่กระดูกสะบ้าหัวเข่า",
         isTargetFocus: isGluteFocus,
         note: "ออกแบบเฉพาะสำหรับผู้มีปัญหาข้อเข่าหรือข้อต่อ",
@@ -785,7 +788,7 @@ export default function DashboardPage() {
         sets: isLegFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "ค้าง 20-30 วินาที",
         rest: "60 วิ",
-        tag: isLegFocus ? "ต้นขาและน่อง (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "สร้างความแข็งแรงเอ็นรอบหัวเข่า",
+        tag: isLegFocus ? "ต้นขาและน่อง (โฟกัสพิเศษตามเป้าหมาย)" : "สร้างความแข็งแรงเอ็นรอบหัวเข่า",
         safetyCue: "หลังแนบกำแพง มุมเข่าไม่เกิน 90 องศา (หรือ 60 องศาตามระดับที่ไม่ปวด) ไม่ให้เข่าเลยปลายเท้า",
         isTargetFocus: isLegFocus,
       });
@@ -797,7 +800,7 @@ export default function DashboardPage() {
         sets: isGluteFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "12-15 ครั้ง/ข้าง",
         rest: "45 วิ",
-        tag: isGluteFocus ? "ก้นและสะโพก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "เสริมความมั่นคงสะบ้าข้อเข่า",
+        tag: isGluteFocus ? "ก้นและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "เสริมความมั่นคงสะบ้าข้อเข่า",
         safetyCue: "ประกบส้นเท้าไว้ เปิดเข่าด้านบนขึ้น ลำตัวไม่เอี้ยวหรือหงายไปด้านหลัง",
         isTargetFocus: isGluteFocus,
       });
@@ -811,7 +814,7 @@ export default function DashboardPage() {
         sets: isLegFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10 ครั้ง/ข้าง",
         rest: "60 วิ",
-        tag: isLegFocus ? "ต้นขาและสะโพก (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขา สะโพก และการทรงตัว",
+        tag: isLegFocus ? "ต้นขาและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขา สะโพก และการทรงตัว",
         safetyCue: "ก้าวถอยหลังเพื่อลดแรงกดดันที่หัวเข่าด้านหน้า ทิ้งน้ำหนักกึ่งกลาง ลำตัวตั้งตรง",
         isTargetFocus: isLegFocus,
       });
@@ -823,7 +826,7 @@ export default function DashboardPage() {
         sets: isGluteFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10-12 ครั้ง",
         rest: "60 วิ",
-        tag: isGluteFocus ? "สะโพกและต้นขาหลัง (⭐ โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขาด้านหลังและสะโพก (Hamstrings & Glutes)",
+        tag: isGluteFocus ? "สะโพกและต้นขาหลัง (โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขาด้านหลังและสะโพก (Hamstrings & Glutes)",
         safetyCue: "พับจากข้อพับสะโพก (Hip Hinge) หลังตรงตลอดแนว รู้สึกตึงที่ต้นขาหลังแล้วดึงสะโพกกลับ",
         isTargetFocus: isGluteFocus,
       });
@@ -1445,11 +1448,11 @@ export default function DashboardPage() {
           </div>
 
           {/* สถิติตัวเลขพลังงาน 4 ช่อง */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 text-center">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">BMI ปัจจุบัน</div>
-              <div className="text-2xl font-black text-zinc-900 mt-0.5">{assessment.bmi}</div>
-              <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-5 text-center">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">BMI ปัจจุบัน</div>
+              <div className="text-2xl font-black text-zinc-900 mt-1">{assessment.bmi}</div>
+              <div className="text-xs text-emerald-600 font-bold mt-1">
                 {assessment.bmi < 18.5
                   ? "ผอม"
                   : assessment.bmi <= 22.9
@@ -1460,66 +1463,80 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">เป้าหมายแคลอรี่ / วัน</div>
-              <div className="text-2xl font-black text-emerald-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">เป้าหมายแคลอรี่</div>
+              <div className="text-2xl font-black text-emerald-600 mt-1">
                 {assessment.targetCalories}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">kcal / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">kcal / วัน</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">โปรตีนเป้าหมาย</div>
-              <div className="text-2xl font-black text-teal-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">โปรตีนเป้าหมาย</div>
+              <div className="text-2xl font-black text-teal-600 mt-1">
                 {assessment.targetProteinGrams || Math.round(assessment.weight * 1.6)}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">กรัม / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">กรัม / วัน</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">ดื่มน้ำขั้นต่ำ</div>
-              <div className="text-2xl font-black text-cyan-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">ดื่มน้ำขั้นต่ำ</div>
+              <div className="text-2xl font-black text-cyan-600 mt-1">
                 {(assessment.weight * 0.035).toFixed(1)}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">ลิตร / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">ลิตร / วัน</div>
             </div>
           </div>
         </div>
 
-        {/* แถบเลือกแท็บ (Overview / Workout / Nutrition) */}
-        <div className="flex border-b border-zinc-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
-              activeTab === "overview"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            ภาพรวมและข้อควรระวัง
-          </button>
+        {/* แถบเลือกแท็บแบบ Pill Navigation ขนาดใหญ่ ชัดเจน ไม่ปวดตา */}
+        <div className="flex flex-wrap gap-2 p-1.5 bg-zinc-200/60 rounded-2xl w-fit">
           <button
             type="button"
             onClick={() => setActiveTab("workout")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
               activeTab === "workout"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
+                ? "bg-white text-emerald-700 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
-            ตารางออกกำลังกาย ({assessment.workoutDays} วัน/สัปดาห์)
+            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>ตารางออกกำลังกาย</span>
+            <span className="text-xs bg-emerald-100/90 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+              {assessment.workoutDays} วัน/สัปดาห์
+            </span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("nutrition")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
               activeTab === "nutrition"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
+                ? "bg-white text-teal-700 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
-            แผนอาหาร (Hard Filter ปลอดภัย 100%)
+            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+            <span>แผนโภชนาการ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
+              activeTab === "overview"
+                ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>ภาพรวมสุขภาพ</span>
           </button>
         </div>
 
@@ -1654,9 +1671,13 @@ export default function DashboardPage() {
                 ) : (
                   <Link
                     href="/assessment"
-                    className="px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-semibold text-emerald-300 transition shrink-0 flex items-center gap-1.5 self-start sm:self-center"
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-semibold text-emerald-300 transition shrink-0 flex items-center gap-2 self-start sm:self-center"
                   >
-                    <span>📷 สแกนสรีระด้วยกล้อง</span>
+                    <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>สแกนสรีระด้วยกล้อง</span>
                     <span className="text-zinc-400">&rarr;</span>
                   </Link>
                 )}
@@ -1690,8 +1711,12 @@ export default function DashboardPage() {
                     <div className="text-xs text-amber-300 font-medium mt-1 leading-relaxed">
                       {assessment.bodyScanResult.focusGaps?.[0] || "เน้นเพิ่มความแข็งแรงในมัดกล้ามเนื้อเป้าหมาย"}
                     </div>
-                    <div className="text-[10px] text-zinc-400 mt-1">
-                      วิธีสแกน: {assessment.bodyScanResult.scanMethod === "webcam" ? "📷 กล้องเว็บแคม" : "🖼️ แนบรูปภาพ"}
+                    <div className="text-[10px] text-zinc-400 mt-1 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>วิธีสแกน: {assessment.bodyScanResult.scanMethod === "webcam" ? "กล้องเว็บแคม" : "แนบรูปภาพ"}</span>
                     </div>
                   </div>
                 </div>
@@ -1699,8 +1724,13 @@ export default function DashboardPage() {
 
               {/* กล้ามเนื้อเป้าหมายที่เลือกไว้ (Target Muscles Tags) */}
               {assessment.targetMuscles && assessment.targetMuscles.length > 0 && (
-                <div className="pt-2 border-t border-white/10 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] text-zinc-300 font-medium">🎯 มัดกล้ามเนื้อที่โฟกัสในตารางฝึก:</span>
+                <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span>มัดกล้ามเนื้อที่โฟกัสในตารางฝึก:</span>
+                  </span>
                   {assessment.targetMuscles.map((muscle) => {
                     const muscleLabels: Record<string, string> = {
                       chest: "หน้าอก (Chest)",
@@ -1713,9 +1743,10 @@ export default function DashboardPage() {
                     return (
                       <span
                         key={muscle}
-                        className="px-2.5 py-1 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold flex items-center gap-1"
+                        className="px-3 py-1 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5"
                       >
-                        ⭐ {muscleLabels[muscle] || muscle}
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        <span>{muscleLabels[muscle] || muscle}</span>
                       </span>
                     );
                   })}
@@ -1728,63 +1759,63 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <h3 className="text-sm font-bold text-zinc-900">
-                    โครงสร้างโปรแกรมตามหลักการ FITT-VP (ACSM Guidelines 11th Ed.)
+                  <h3 className="text-base font-bold text-zinc-900">
+                    โครงสร้างโปรแกรมตามหลักการ FITT-VP (ACSM Guidelines)
                   </h3>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  WHO Global Standards
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                  มาตรฐาน WHO &amp; ACSM
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200/80">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">F - Frequency</div>
-                  <div className="text-sm font-black text-zinc-900 mt-0.5">{assessment.workoutDays} วัน / สัปดาห์</div>
-                  <div className="text-[10px] text-emerald-600 font-medium mt-0.5">กระจายวันพักเหมาะสม</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">F - ความถี่</div>
+                  <div className="text-base font-extrabold text-zinc-900 mt-1">{assessment.workoutDays} วัน / สัปดาห์</div>
+                  <div className="text-xs text-emerald-700 font-medium mt-0.5">กระจายวันพักเหมาะสม</div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200/80">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">I - Intensity</div>
-                  <div className="text-sm font-black text-emerald-600 mt-0.5">Zone 2-3 (Moderate)</div>
-                  <div className="text-[10px] text-zinc-500 font-medium mt-0.5">RPE 5-6 / เหนื่อยกำลังดี</div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">I - ความหนัก</div>
+                  <div className="text-base font-extrabold text-emerald-600 mt-1">Zone 2-3 (Moderate)</div>
+                  <div className="text-xs text-zinc-500 font-medium mt-0.5">RPE 5-6 เหนื่อยกำลังดี</div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200/80">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">T - Time</div>
-                  <div className="text-sm font-black text-teal-600 mt-0.5">{assessment.sessionMinutes || 40} นาที / ครั้ง</div>
-                  <div className="text-[10px] text-teal-700 font-medium mt-0.5">ขั้นต่ำ &ge; 30 นาที (ตรงตามเกณฑ์)</div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">T - เวลา</div>
+                  <div className="text-base font-extrabold text-teal-600 mt-1">{assessment.sessionMinutes || 40} นาที / ครั้ง</div>
+                  <div className="text-xs text-teal-700 font-medium mt-0.5">ตรงตามเกณฑ์สุขภาพสากล</div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200/80">
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">T - Type</div>
-                  <div className="text-sm font-black text-cyan-600 mt-0.5">Resistance + Cardio</div>
-                  <div className="text-[10px] text-zinc-500 font-medium mt-0.5">สร้างกล้ามเนื้อ &amp; ปอดหัวใจ</div>
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">T - รูปแบบ</div>
+                  <div className="text-base font-extrabold text-cyan-600 mt-1">Resistance + Cardio</div>
+                  <div className="text-xs text-zinc-500 font-medium mt-0.5">กล้ามเนื้อและปอดหัวใจ</div>
                 </div>
               </div>
             </div>
 
             {/* การ์ดอัตราการเต้นหัวใจเป้าหมาย (Target Heart Rate Zones - THR) */}
-            <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-teal-800/40 relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
+            <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-teal-800/40 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                     <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                      Target Heart Rate (THR) Zone Calculator
+                      Target Heart Rate Zones
                     </span>
                   </div>
-                  <h3 className="text-base font-black text-white mt-1">
+                  <h3 className="text-base sm:text-lg font-bold text-white mt-1">
                     อัตราการเต้นหัวใจเป้าหมายเฉพาะบุคคล (คำนวณจากอายุ {userAge} ปี)
                   </h3>
-                  <p className="text-[11px] text-zinc-300 mt-0.5">
-                    สูตรมาตรฐานสากล HR<sub>max</sub> = 220 - {userAge} = <strong className="text-white font-mono">{thrZones.hrMax} bpm</strong> (ครั้ง/นาที) อ้างอิง CDC, AHA และ ACSM
+                  <p className="text-xs text-zinc-300 mt-0.5">
+                    เกณฑ์สากล HR<sub>max</sub> = 220 - {userAge} = <strong className="text-white font-mono">{thrZones.hrMax} bpm</strong> (ครั้ง/นาที)
                   </p>
                 </div>
 
-                <div className="px-3.5 py-2 rounded-2xl bg-white/10 border border-white/15 text-center shrink-0">
-                  <div className="text-[10px] text-zinc-300">อัตราเต้นหัวใจสูงสุด (HRmax)</div>
-                  <div className="text-xl font-black text-emerald-400 font-mono mt-0.5">
+                <div className="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-center shrink-0">
+                  <div className="text-xs text-zinc-300">อัตราเต้นหัวใจสูงสุด (HRmax)</div>
+                  <div className="text-xl font-bold text-emerald-400 font-mono mt-0.5">
                     {thrZones.hrMax} <span className="text-xs font-normal text-zinc-300">bpm</span>
                   </div>
                 </div>
@@ -1793,60 +1824,60 @@ export default function DashboardPage() {
               {/* แสดงโซน 1 ถึง 4 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Zone 1 */}
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-zinc-300">{thrZones.zone1.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400">{thrZones.zone1.label}</span>
+                    <span className="text-sm font-bold text-zinc-200">{thrZones.zone1.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone1.label}</span>
                   </div>
-                  <div className="text-lg font-black text-white font-mono mt-2">
+                  <div className="text-lg font-bold text-white font-mono mt-2">
                     {thrZones.zone1.min} - {thrZones.zone1.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
                   </div>
-                  <p className="text-[10px] text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                     {thrZones.zone1.desc}
                   </p>
                 </div>
 
                 {/* Zone 2 (Recommended Highlight) */}
-                <div className="p-3.5 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400/80 relative shadow-lg shadow-emerald-500/10">
-                  <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-                    ★ โซนแนะนำหลัก
+                <div className="p-4 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400/80 relative shadow-lg shadow-emerald-500/10">
+                  <span className="absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-xs">
+                    โซนแนะนำหลัก
                   </span>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-300">{thrZones.zone2.name}</span>
-                    <span className="text-[10px] font-mono text-emerald-300 font-bold">{thrZones.zone2.label}</span>
+                    <span className="text-sm font-bold text-emerald-300">{thrZones.zone2.name}</span>
+                    <span className="text-xs font-mono text-emerald-300 font-bold">{thrZones.zone2.label}</span>
                   </div>
-                  <div className="text-xl font-black text-emerald-300 font-mono mt-2">
+                  <div className="text-xl font-bold text-emerald-300 font-mono mt-2">
                     {thrZones.zone2.min} - {thrZones.zone2.max} <span className="text-xs font-normal text-emerald-200">bpm</span>
                   </div>
-                  <p className="text-[10px] text-zinc-300 mt-1 leading-relaxed">
+                  <p className="text-xs text-zinc-200 mt-1 leading-relaxed">
                     {thrZones.zone2.desc}
                   </p>
                 </div>
 
                 {/* Zone 3 */}
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-300">{thrZones.zone3.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400">{thrZones.zone3.label}</span>
+                    <span className="text-sm font-bold text-amber-300">{thrZones.zone3.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone3.label}</span>
                   </div>
-                  <div className="text-lg font-black text-white font-mono mt-2">
+                  <div className="text-lg font-bold text-white font-mono mt-2">
                     {thrZones.zone3.min} - {thrZones.zone3.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
                   </div>
-                  <p className="text-[10px] text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                     {thrZones.zone3.desc}
                   </p>
                 </div>
 
                 {/* Zone 4 */}
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-rose-300">{thrZones.zone4.name}</span>
-                    <span className="text-[10px] font-mono text-zinc-400">{thrZones.zone4.label}</span>
+                    <span className="text-sm font-bold text-rose-300">{thrZones.zone4.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone4.label}</span>
                   </div>
-                  <div className="text-lg font-black text-white font-mono mt-2">
+                  <div className="text-lg font-bold text-white font-mono mt-2">
                     {thrZones.zone4.min} - {thrZones.zone4.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
                   </div>
-                  <p className="text-[10px] text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
                     {thrZones.zone4.desc}
                   </p>
                 </div>
@@ -1859,25 +1890,25 @@ export default function DashboardPage() {
                 <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   เครื่องมือช่วยฝึก (Rest Timer)
                 </div>
-                <div className="text-sm font-black text-zinc-900 mt-0.5">
+                <div className="text-base font-bold text-zinc-900 mt-0.5">
                   นาฬิกาจับเวลาพักระหว่างเซ็ต
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="text-2xl font-black text-emerald-600 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-emerald-600 font-mono px-3 py-1 bg-emerald-50 rounded-xl border border-emerald-100">
                   {Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, "0")}
                 </div>
 
-                <div className="flex gap-1.5">
+                <div className="flex items-center gap-2">
                   {[30, 60, 90].map((sec) => (
                     <button
                       key={sec}
                       type="button"
                       onClick={() => handleStartTimer(sec)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                      className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold border transition active:scale-[0.98] ${
                         timerPreset === sec && isTimerRunning
-                          ? "bg-emerald-500 border-emerald-600 text-white"
+                          ? "bg-emerald-600 border-emerald-700 text-white shadow-sm"
                           : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                       }`}
                     >
@@ -1888,7 +1919,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => setIsTimerRunning(false)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                      className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition active:scale-[0.98]"
                     >
                       หยุด
                     </button>
@@ -1898,35 +1929,35 @@ export default function DashboardPage() {
             </div>
 
             {/* รายการวันฝึก */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               {workoutSchedule.map((day, dayIndex) => {
                 const isCompleted = completedDays.includes(dayIndex);
                 const currentLoc = dayLocations[dayIndex] || (assessment.workoutLocation as "home" | "gym" | "outdoor") || "home";
                 return (
                   <div
                     key={dayIndex}
-                    className={`bg-white border rounded-3xl p-6 shadow-sm transition ${
-                      isCompleted ? "border-emerald-300 bg-emerald-50/30" : "border-zinc-200"
+                    className={`bg-white border rounded-3xl p-5 sm:p-7 shadow-sm transition ${
+                      isCompleted ? "border-emerald-300 bg-emerald-50/20" : "border-zinc-200"
                     }`}
                   >
                     {/* สวิตช์สลับสถานที่ฝึกประจำวัน (บ้าน / ฟิตเนส / กลางแจ้ง) */}
-                    <div className="mb-4 pb-3 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-600 flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="mb-5 pb-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           <span>สถานที่ฝึกวันนี้:</span>
                         </span>
-                        <div className="inline-flex rounded-xl p-1 bg-zinc-100 border border-zinc-200">
+                        <div className="inline-flex rounded-2xl p-1 bg-zinc-100 border border-zinc-200">
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "home")}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
                               currentLoc === "home"
-                                ? "bg-white text-emerald-700 shadow-xs border border-zinc-200/80"
-                                : "text-zinc-500 hover:text-zinc-800"
+                                ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
                             }`}
                           >
                             <span>ที่บ้าน</span>
@@ -1934,10 +1965,10 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "gym")}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
                               currentLoc === "gym"
-                                ? "bg-white text-teal-700 shadow-xs border border-zinc-200/80"
-                                : "text-zinc-500 hover:text-zinc-800"
+                                ? "bg-white text-teal-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
                             }`}
                           >
                             <span>ฟิตเนส</span>
@@ -1945,10 +1976,10 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "outdoor")}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
                               currentLoc === "outdoor"
-                                ? "bg-white text-emerald-700 shadow-xs border border-zinc-200/80"
-                                : "text-zinc-500 hover:text-zinc-800"
+                                ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
                             }`}
                           >
                             <span>กลางแจ้ง / สวน</span>
@@ -1956,29 +1987,32 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="text-[11px] text-zinc-400">
-                        * เปลี่ยนสถานที่ได้อิสระ ท่าและอุปกรณ์จะปรับให้สอดคล้องทันที
+                      <div className="text-xs text-zinc-500">
+                        * ปรับสถานที่ได้อิสระ ท่าและอุปกรณ์จะปรับให้สอดคล้องทันที
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4 mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-5 mb-5">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-bold text-zinc-900">
+                        <div className="flex items-center gap-2.5">
+                          <h3 className="text-lg font-bold text-zinc-900">
                             {day.dayTitle}
                           </h3>
                           {isCompleted && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                              ฝึกเสร็จแล้ววันนี้
+                            <span className="px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>ฝึกเสร็จแล้ว</span>
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          โฟกัส: {day.focus} • ระยะเวลา: {day.duration}
+                        <p className="text-sm text-zinc-600 mt-1">
+                          โฟกัส: <strong>{day.focus}</strong> • ระยะเวลา: <strong>{day.duration}</strong>
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2.5">
                         <button
                           type="button"
                           onClick={() =>
@@ -1989,33 +2023,33 @@ export default function DashboardPage() {
                               initialIndex: 0,
                             })
                           }
-                          className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 transition flex items-center gap-2"
+                          className="min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-2 active:scale-[0.98]"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
-                          <span>เปิดโหมดจับท่า AI</span>
+                          <span>เริ่มฝึกทั้งวันด้วย AI</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleToggleCompleteDay(dayIndex)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 ${
+                          className={`min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold border transition flex items-center gap-2 active:scale-[0.98] ${
                             isCompleted
-                              ? "bg-emerald-500 border-emerald-600 text-white"
+                              ? "bg-emerald-600 border-emerald-700 text-white"
                               : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                           }`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          {isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}
+                          <span>{isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* ตารางท่าออกกำลังกาย */}
-                    <div className="space-y-2.5">
+                    {/* ตารางท่าออกกำลังกาย (Clean, Breathable Cards with >=44px buttons) */}
+                    <div className="space-y-3.5">
                       {day.exercises.map((ex, exIndex) => {
                         const isExCompleted = Boolean(
                           completedExercises[`${dayIndex}-${exIndex}`]
@@ -2023,85 +2057,92 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={exIndex}
-                            className={`p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                            className={`p-4 sm:p-5 rounded-2xl border transition space-y-3 ${
                               isExCompleted
                                 ? "bg-emerald-50/40 border-emerald-300"
-                                : "bg-slate-50/80 border-zinc-200/80"
+                                : "bg-slate-50/60 border-zinc-200 hover:border-zinc-300"
                             }`}
                           >
-                            <div>
-                              <div className="text-xs font-bold text-zinc-900 flex flex-wrap items-center gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {ex.phase === "warmup" && (
-                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100/90 px-2 py-0.5 rounded-md shrink-0">
+                                  <span className="text-xs font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-md shrink-0">
                                     Warm-up
                                   </span>
                                 )}
                                 {ex.phase === "main" && (
-                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-md shrink-0">
+                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-md shrink-0">
                                     ท่าหลัก
                                   </span>
                                 )}
                                 {ex.phase === "cooldown" && (
-                                  <span className="text-[10px] font-bold text-sky-700 bg-sky-100/90 px-2 py-0.5 rounded-md shrink-0">
+                                  <span className="text-xs font-bold text-sky-800 bg-sky-100/90 px-2.5 py-0.5 rounded-md shrink-0">
                                     Cool-down
                                   </span>
                                 )}
-                                <span>{ex.name}</span>
-                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                                <h4 className="text-base font-bold text-zinc-900">
+                                  {ex.name}
+                                </h4>
+                                <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
                                   {ex.tag}
                                 </span>
                                 {ex.isTargetFocus && (
-                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                                  <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full shrink-0">
                                     โฟกัสเฉพาะส่วน
                                   </span>
                                 )}
                                 {isExCompleted && (
-                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-fade-in">
-                                    <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                     </svg>
                                     ผ่านแล้ว
                                   </span>
                                 )}
                               </div>
-                              {ex.safetyCue && (
-                                <div className="text-[11px] text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 rounded-lg px-2.5 py-1 mt-1.5 flex items-start gap-1.5 leading-snug">
-                                  <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span><strong>จุดโฟกัสความปลอดภัย:</strong> {ex.safetyCue}</span>
-                                </div>
-                              )}
-                              {ex.note && (
-                                <p className="text-[11px] text-amber-700 mt-1 font-medium">
-                                  * {ex.note}
-                                </p>
-                              )}
-                            </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="flex items-center gap-4 text-xs font-mono text-zinc-600">
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">เซ็ต:</span>{" "}
+                              {/* สถิติ เซ็ต / ครั้ง / พัก ชัดเจนอ่านง่าย */}
+                              <div className="flex items-center gap-2 text-xs font-mono text-zinc-700">
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">เซ็ต:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.sets}</strong>
                                 </div>
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">ครั้ง:</span>{" "}
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">ครั้ง:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.reps}</strong>
                                 </div>
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">พัก:</span>{" "}
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">พัก:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.rest}</strong>
                                 </div>
                               </div>
+                            </div>
 
+                            {/* จุดโฟกัสความปลอดภัย */}
+                            {ex.safetyCue && (
+                              <div className="text-xs text-emerald-900 bg-emerald-50 border border-emerald-200/70 rounded-xl px-3 py-2 flex items-start gap-2 leading-relaxed">
+                                <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span><strong>คำแนะนำความปลอดภัย:</strong> {ex.safetyCue}</span>
+                              </div>
+                            )}
+
+                            {ex.note && (
+                              <p className="text-xs text-amber-800 font-medium">
+                                * {ex.note}
+                              </p>
+                            )}
+
+                            {/* แถวปุ่มปฏิบัติการ (Touch targets >= 44px) */}
+                            <div className="pt-1 flex flex-wrap items-center gap-2.5 sm:justify-end">
                               <button
                                 type="button"
                                 onClick={() => setDemoExercise(ex)}
-                                className="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/90 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition flex items-center gap-1.5 shadow-xs"
+                                className="min-h-[44px] px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold transition flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
                                 title="ดูตัวอย่างภาพเคลื่อนไหวและฟอร์มท่าที่ถูกต้อง"
                               >
-                                <svg className="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -2118,23 +2159,23 @@ export default function DashboardPage() {
                                     initialIndex: exIndex,
                                   })
                                 }
-                                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm ${
+                                className={`min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${
                                   isExCompleted
-                                    ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-white border-zinc-200 hover:border-emerald-500 hover:text-emerald-600 text-zinc-700"
+                                    ? "bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10"
                                 }`}
                                 title={isExCompleted ? "ฝึกซ้ำด้วย AI" : "เปิดกล้องจับท่า AI เฉพาะท่านี้"}
                               >
                                 {isExCompleted ? (
                                   <>
-                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                     <span>ฝึกซ้ำ</span>
                                   </>
                                 ) : (
                                   <>
-                                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                     <span>ฝึกด้วย AI</span>
@@ -2310,12 +2351,12 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    {/* ปุ่มสลับรูปแบบอาหาร 3 ทางเลือก */}
-                    <div className="space-y-1.5">
-                      <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                    {/* ปุ่มสลับรูปแบบอาหาร 3 ทางเลือก (Large, comfortable touch targets) */}
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                         เลือกสไตล์อาหารมื้อนี้ตามสะดวก:
                       </div>
-                      <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100/90 rounded-2xl w-fit">
+                      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
                         {meal.options.map((opt, optIdx) => {
                           const isSelected = currentOptIdx === optIdx;
                           return (
@@ -2328,9 +2369,9 @@ export default function DashboardPage() {
                                   [idx]: optIdx,
                                 }))
                               }
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                              className={`min-h-[40px] px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 active:scale-[0.98] ${
                                 isSelected
-                                  ? "bg-white text-emerald-700 shadow-sm border border-zinc-200"
+                                  ? "bg-white text-emerald-800 shadow-sm border border-zinc-200"
                                   : "text-zinc-600 hover:text-zinc-900"
                               }`}
                             >
@@ -2348,19 +2389,21 @@ export default function DashboardPage() {
                     </div>
 
                     {/* รายละเอียดเมนูที่เลือก */}
-                    <div className="p-4 rounded-2xl bg-slate-50/80 border border-zinc-200/70 space-y-2.5">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-zinc-200/80 space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="text-sm font-bold text-zinc-900 leading-snug">
+                        <div className="text-base font-bold text-zinc-900 leading-snug">
                           {activeOption.dish}
                         </div>
-                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full shrink-0">
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full shrink-0">
                           {activeOption.category}
                         </span>
                       </div>
 
                       {activeOption.orderingTip && (
-                        <div className="text-xs text-zinc-700 bg-white border border-zinc-200/80 rounded-xl p-3 flex items-start gap-2 leading-relaxed">
-                          <span className="text-base shrink-0">💡</span>
+                        <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded-xl p-3 flex items-start gap-2.5 leading-relaxed">
+                          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
                           <div>
                             <strong className="text-zinc-900">เทคนิคการสั่ง/เตรียม:</strong>{" "}
                             <span className="text-zinc-600">{activeOption.orderingTip}</span>
@@ -2368,8 +2411,10 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      <div className="text-xs text-teal-800 bg-teal-50/60 border border-teal-200/60 rounded-xl px-3 py-2 flex items-center gap-2">
-                        <span className="text-sm shrink-0">🥗</span>
+                      <div className="text-xs text-teal-900 bg-teal-50 border border-teal-200/70 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+                        <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                        </svg>
                         <div>
                           <strong>สัดส่วนจาน 2:1:1:</strong>{" "}
                           <span className="font-medium text-teal-900">{activeOption.plateRatio}</span>
