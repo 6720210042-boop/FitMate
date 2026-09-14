@@ -914,10 +914,10 @@ export default function AssessmentPage() {
                 setStep(2);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition flex items-center justify-center gap-2"
+              className="w-full min-h-[52px] py-4 rounded-2xl bg-emerald-600 text-white font-bold text-base shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition flex items-center justify-center gap-2 active:scale-[0.99]"
             >
               ถัดไป: กำหนดเป้าหมาย & แผนออกกำลังกาย
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>
@@ -1009,14 +1009,38 @@ export default function AssessmentPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                   {[
-                    { id: "chest", label: "อก (Chest)", icon: "🛡️" },
-                    { id: "back", label: "หลัง & ปีก (Back)", icon: "🦅" },
-                    { id: "shoulders_arms", label: "ไหล่ & แขน", icon: "💪" },
-                    { id: "abs", label: "ซิกแพค & แกนกลาง", icon: "⚡" },
-                    { id: "glutes", label: "ก้น & สะโพก", icon: "🍑" },
-                    { id: "legs", label: "ขา & น่อง", icon: "🦵" },
+                    {
+                      id: "chest",
+                      label: "อก (Chest)",
+                      iconPath: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+                    },
+                    {
+                      id: "back",
+                      label: "หลัง & ปีก (Back)",
+                      iconPath: "M4 6h16M4 10h16M4 14h16M4 18h16",
+                    },
+                    {
+                      id: "shoulders_arms",
+                      label: "ไหล่ & แขน",
+                      iconPath: "M13 10V3L4 14h7v7l9-11h-7z",
+                    },
+                    {
+                      id: "abs",
+                      label: "ซิกแพค & แกนกลาง",
+                      iconPath: "M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z",
+                    },
+                    {
+                      id: "glutes",
+                      label: "ก้น & สะโพก",
+                      iconPath: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+                    },
+                    {
+                      id: "legs",
+                      label: "ขา & น่อง",
+                      iconPath: "M19 14l-7 7m0 0l-7-7m7 7V3",
+                    },
                   ].map((muscle) => {
                     const isSelected = targetMuscles.includes(muscle.id);
                     return (
@@ -1032,13 +1056,15 @@ export default function AssessmentPage() {
                             setTargetMuscles([...targetMuscles, muscle.id]);
                           }
                         }}
-                        className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                        className={`p-3.5 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-2 min-h-[76px] active:scale-[0.98] ${
                           isSelected
-                            ? "bg-emerald-500 border-emerald-600 text-white shadow-sm font-bold"
+                            ? "bg-emerald-600 border-emerald-700 text-white shadow-sm font-bold"
                             : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-medium"
                         }`}
                       >
-                        <span className="text-xl">{muscle.icon}</span>
+                        <svg className={`w-5 h-5 ${isSelected ? "text-white" : "text-emerald-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={muscle.iconPath} />
+                        </svg>
                         <span className="text-xs">{muscle.label}</span>
                       </button>
                     );
@@ -1293,7 +1319,7 @@ export default function AssessmentPage() {
                   setStep(1);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="py-4 px-6 rounded-2xl border border-zinc-300 bg-white text-zinc-700 font-semibold text-sm hover:bg-zinc-50 transition"
+                className="min-h-[52px] py-3.5 px-8 rounded-2xl border border-zinc-300 bg-white text-zinc-800 font-bold text-base hover:bg-zinc-50 transition active:scale-[0.99]"
               >
                 ย้อนกลับ
               </button>
@@ -1303,10 +1329,10 @@ export default function AssessmentPage() {
                   setStep(3);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="flex-1 py-4 rounded-2xl bg-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition flex items-center justify-center gap-2"
+                className="flex-1 min-h-[52px] py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-base shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition flex items-center justify-center gap-2 active:scale-[0.99]"
               >
                 ถัดไป: พฤติกรรมการกินและโภชนาการ
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
@@ -1549,7 +1575,7 @@ export default function AssessmentPage() {
                   setStep(2);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="py-4 px-6 rounded-2xl border border-zinc-300 bg-white text-zinc-700 font-semibold text-sm hover:bg-zinc-50 transition"
+                className="min-h-[52px] py-3.5 px-8 rounded-2xl border border-zinc-300 bg-white text-zinc-800 font-bold text-base hover:bg-zinc-50 transition active:scale-[0.99]"
               >
                 ย้อนกลับ
               </button>
@@ -1559,10 +1585,10 @@ export default function AssessmentPage() {
                   setStep(4);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="flex-1 py-4 rounded-2xl bg-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition flex items-center justify-center gap-2"
+                className="flex-1 min-h-[52px] py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-base shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition flex items-center justify-center gap-2 active:scale-[0.99]"
               >
                 ดูสรุปผลการวิเคราะห์และความปลอดภัย
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
@@ -1668,8 +1694,9 @@ export default function AssessmentPage() {
                   </h3>
                 </div>
                 {bodyScanResult && (
-                  <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full">
-                    🎯 ความพร้อมของสรีระ {bodyScanResult.matchScore}%
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>ความพร้อมของสรีระ {bodyScanResult.matchScore}%</span>
                   </span>
                 )}
               </div>
@@ -1778,7 +1805,7 @@ export default function AssessmentPage() {
                   setStep(3);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className="py-4 px-6 rounded-2xl border border-zinc-300 bg-white text-zinc-700 font-semibold text-sm hover:bg-zinc-50 transition"
+                className="min-h-[52px] py-3.5 px-8 rounded-2xl border border-zinc-300 bg-white text-zinc-800 font-bold text-base hover:bg-zinc-50 transition active:scale-[0.99]"
               >
                 แก้ไขข้อมูล
               </button>
@@ -1786,10 +1813,10 @@ export default function AssessmentPage() {
                 type="button"
                 disabled={isSaving}
                 onClick={handleCompleteAssessment}
-                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm shadow-xl shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 min-h-[52px] py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-bold text-base shadow-xl shadow-emerald-600/20 hover:from-emerald-700 hover:to-teal-800 transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99]"
               >
                 {isSaving ? "กำลังสร้างแดชบอร์ดเฉพาะบุคคล..." : "เข้าสู่ Dashboard แผนการฝึกและโภชนาการของคุณ"}
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </button>
