@@ -252,6 +252,78 @@ export default function Home() {
           </div>
         </div>
 
+        {/* แถบจุดเด่นด้านความปลอดภัยและความหลากหลายในการใช้งานจริง */}
+        <div className="mt-14 w-full bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl text-left border border-emerald-800/40 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Practical &amp; Safe System • ออกแบบเพื่อชีวิตจริง
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white mb-2">
+              ออกแบบโปรแกรมให้ปลอดภัย หลากหลาย และทำตามได้ต่อเนื่อง
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-3xl mb-6">
+              FitMate ผสานหลักสรีรวิทยาและโภชนาการที่ปลอดภัย เข้ากับพฤติกรรมการใช้ชีวิตประจำวันจริง
+              ไม่ว่าคุณจะฝึกที่บ้าน มีเวลาจำกัด หรือต้องทานอาหารนอกบ้านเป็นหลัก
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-400/40 transition">
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  โครงสร้างฝึก 3 ขั้นตอน
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Warm-up &bull; Main &bull; Cool-down
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  อบอุ่นข้อต่อก่อนฝึก เซ็ตหลักพร้อมข้อควรระวังฟอร์มท่า และยืดเหยียดคลายกล้ามเนื้อหลังฝึกเพื่อลดอาการเมื่อยล้า
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-teal-400/40 transition">
+                <div className="text-xs font-bold text-teal-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-400" />
+                  สลับท่าเซฟข้อต่ออัตโนมัติ
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Safe Injury Overrides
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  ระบบตรวจสอบอาการเจ็บเข่า หลัง ไหล่ ข้อมือ และสลับไปใช้ท่าที่ไร้แรงกระแทกทันที ป้องกันอาการบาดเจ็บซ้ำ
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 transition">
+                <div className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                  เมนูทางเลือกหลากหลาย
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Flexible Meal Alternatives
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  สลับเมนูได้ในแต่ละมื้อ ครอบคลุมทั้งอาหารตามสั่งที่สั่งแบบสุขภาพดีได้จริง และเมนูเตรียมเองง่ายๆ ไม่จำเจ
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-300/40 transition">
+                <div className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-300" />
+                  กรองสารก่อภูมิแพ้ 100%
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Zero-Allergy Hard Filter
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  คัดกรองวัตถุดิบและอาหารที่แพ้ออกจากทุกมื้ออย่างเด็ดขาด พร้อมแนะนำแหล่งโปรตีนทางเลือกที่ปลอดภัยทดแทน
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ตัวอย่างผลลัพธ์และรีวิวผู้ใช้งาน (ตามข้อกำหนดในเอกสารหน้า 1 ข้อ 2) */}
         <div className="mt-16 w-full text-left">
           <div className="text-center mb-8">

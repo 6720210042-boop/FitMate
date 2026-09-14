@@ -3,6 +3,7 @@
 import { useState, useEffect, useId } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AIBodyScanner, { BodyScanResult } from "./AIBodyScanner";
 
 // รายการโรคประจำตัว
 const CHRONIC_DISEASES = [
@@ -100,6 +101,8 @@ export default function AssessmentPage() {
   const [regularMedications, setRegularMedications] = useState<string>("");
   const [isPregnantOrNursing, setIsPregnantOrNursing] = useState<boolean>(false);
   const [currentActivityLevel, setCurrentActivityLevel] = useState<string>("occasional");
+  // คุณภาพการพักผ่อนและการฟื้นตัว
+  const [sleepHours, setSleepHours] = useState<"short" | "optimal" | "long">("optimal");
 
   // PAR-Q Red Flag Questions (ถ้าตอบ "ใช่" จะเป็นธงแดง)
   const [parqChestPain, setParqChestPain] = useState<boolean>(false);
@@ -116,7 +119,14 @@ export default function AssessmentPage() {
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>(["bodyweight"]);
   const [movementLimits, setMovementLimits] = useState<string[]>(["none"]);
 
+  // --- หุ่นต้นแบบในฝัน & จุดเน้นกล้ามเนื้อ & ผลสแกนสรีระ (AI Body Scan) ---
+  const [physiqueArchetype, setPhysiqueArchetype] = useState<string>("superhero");
+  const [customPhysiqueName, setCustomPhysiqueName] = useState<string>("");
+  const [targetMuscles, setTargetMuscles] = useState<string[]>(["chest", "back", "abs"]);
+  const [bodyScanResult, setBodyScanResult] = useState<BodyScanResult | null>(null);
+
   // --- STEP 3: พฤติกรรมการกินและโภชนาการ ---
+  const [eatingStyle, setEatingStyle] = useState<"street_food" | "home_cook" | "mixed">("mixed");
   const [dietType, setDietType] = useState<string>("general");
   const [dislikedFoods, setDislikedFoods] = useState<string[]>(["none"]);
   const [otherDisliked, setOtherDisliked] = useState<string>("");
@@ -151,6 +161,7 @@ export default function AssessmentPage() {
             if (parsed.regularMedications) setRegularMedications(parsed.regularMedications);
             if (parsed.isPregnantOrNursing !== undefined) setIsPregnantOrNursing(parsed.isPregnantOrNursing);
             if (parsed.currentActivityLevel) setCurrentActivityLevel(parsed.currentActivityLevel);
+            if (parsed.sleepHours) setSleepHours(parsed.sleepHours);
             if (parsed.parqChestPain !== undefined) setParqChestPain(parsed.parqChestPain);
             if (parsed.parqDoctorWarning !== undefined) setParqDoctorWarning(parsed.parqDoctorWarning);
             if (parsed.parqDizziness !== undefined) setParqDizziness(parsed.parqDizziness);
@@ -167,7 +178,12 @@ export default function AssessmentPage() {
             if (parsed.workoutLocation) setWorkoutLocation(parsed.workoutLocation);
             if (parsed.selectedEquipment) setSelectedEquipment(parsed.selectedEquipment);
             if (parsed.movementLimits) setMovementLimits(parsed.movementLimits);
+            if (parsed.physiqueArchetype) setPhysiqueArchetype(parsed.physiqueArchetype);
+            if (parsed.customPhysiqueName) setCustomPhysiqueName(parsed.customPhysiqueName);
+            if (parsed.targetMuscles && Array.isArray(parsed.targetMuscles)) setTargetMuscles(parsed.targetMuscles);
+            if (parsed.bodyScanResult) setBodyScanResult(parsed.bodyScanResult);
 
+            if (parsed.eatingStyle) setEatingStyle(parsed.eatingStyle);
             if (parsed.dietType) setDietType(parsed.dietType);
             if (parsed.dislikedFoods) setDislikedFoods(parsed.dislikedFoods);
             if (parsed.otherDisliked) setOtherDisliked(parsed.otherDisliked);
@@ -314,6 +330,7 @@ export default function AssessmentPage() {
     setRegularMedications("");
     setIsPregnantOrNursing(false);
     setCurrentActivityLevel("occasional");
+    setSleepHours("optimal");
     setParqChestPain(false);
     setParqDoctorWarning(false);
     setParqDizziness(false);
@@ -325,6 +342,9 @@ export default function AssessmentPage() {
     setWorkoutLocation("home");
     setSelectedEquipment(["bodyweight", "dumbbells"]);
     setMovementLimits(["none"]);
+    setTargetMuscles(["chest", "back", "abs"]);
+    setBodyScanResult(null);
+    setEatingStyle("mixed");
     setDietType("general");
     setDislikedFoods(["none"]);
     setOtherDisliked("");
@@ -356,6 +376,7 @@ export default function AssessmentPage() {
       regularMedications,
       isPregnantOrNursing,
       currentActivityLevel,
+      sleepHours,
       parqChestPain,
       parqDoctorWarning,
       parqDizziness,
@@ -369,6 +390,11 @@ export default function AssessmentPage() {
       workoutLocation,
       selectedEquipment,
       movementLimits,
+      physiqueArchetype,
+      customPhysiqueName,
+      targetMuscles,
+      bodyScanResult,
+      eatingStyle,
       dietType,
       dislikedFoods,
       otherDisliked,
@@ -486,10 +512,15 @@ export default function AssessmentPage() {
 
             {/* ข้อมูลพื้นฐาน */}
             <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
-              <h2 className="text-sm font-bold text-zinc-900 border-b border-zinc-100 pb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                1. ข้อมูลพื้นฐานร่างกาย (คำนวณ BMI / BMR)
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                <h2 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  1. ข้อมูลพื้นฐานร่างกาย (คำนวณ BMI / BMR)
+                </h2>
+                <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  ประเมินสัดส่วนและอัตราเผาผลาญเฉพาะบุคคล
+                </span>
+              </div>
 
               {/* เพศ */}
               <div>
@@ -734,17 +765,51 @@ export default function AssessmentPage() {
                   ))}
                 </div>
               </div>
+
+
+              {/* การนอนหลับและการฟื้นตัว */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-2">
+                  ชั่วโมงการนอนหลับเฉลี่ยต่อวัน (ส่งผลต่อการฟื้นฟูกล้ามเนื้อ)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: "short", title: "น้อยกว่า 6 ชั่วโมง", desc: "ร่างกายอาจล้าสะสม ต้องการการพักผ่อนเพิ่ม" },
+                    { id: "optimal", title: "7 - 8 ชั่วโมง (แนะนำ)", desc: "ฮอร์โมนฟื้นฟูกล้ามเนื้อทำงานสมบูรณ์" },
+                    { id: "long", title: "มากกว่า 8 ชั่วโมง", desc: "ร่างกายได้พักผ่อนเต็มที่" },
+                  ].map((sleep) => (
+                    <button
+                      key={sleep.id}
+                      type="button"
+                      onClick={() => setSleepHours(sleep.id as "short" | "optimal" | "long")}
+                      className={`p-3 rounded-2xl border text-left transition ${
+                        sleepHours === sleep.id
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-zinc-200 bg-white hover:bg-zinc-50"
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-zinc-900">{sleep.title}</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">{sleep.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* คำถามคัดกรองความเสี่ยง PAR-Q (ธงแดง) */}
             <div className="bg-rose-50/70 border border-rose-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 text-rose-900">
-                <svg className="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h2 className="text-sm font-bold">
-                  คำถามคัดกรองความปลอดภัย (PAR-Q Risk Screen)
-                </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-rose-900">
+                  <svg className="w-5 h-5 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <h2 className="text-sm font-bold">
+                    คำถามคัดกรองความปลอดภัย (PAR-Q Risk Screen)
+                  </h2>
+                </div>
+                <span className="text-[10px] font-medium text-rose-700 bg-rose-100 border border-rose-300 px-2.5 py-0.5 rounded-full">
+                  แบบคัดกรองความพร้อมก่อนออกกำลังกาย
+                </span>
               </div>
               <p className="text-xs text-rose-800 leading-relaxed">
                 โปรดตอบตามความเป็นจริง หากตอบ &ldquo;ใช่&rdquo; ระบบจะจำกัดระดับความหนักไม่ให้เกินขีดอันตราย และแนะนำให้พบแพทย์ก่อนเริ่มโปรแกรม
@@ -924,6 +989,81 @@ export default function AssessmentPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* -------------------------------------------------------------
+                  จุดเน้นกล้ามเนื้อและสัดส่วนพิเศษ (Target Muscle Focus)
+                 ------------------------------------------------------------- */}
+              <div className="pt-2 border-t border-zinc-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-900">
+                      สัดส่วนที่ต้องการเน้นสร้างกล้ามเนื้อเป็นพิเศษ (Target Muscle Focus)
+                    </label>
+                    <p className="text-[11px] text-zinc-500">
+                      ระบบจะเพิ่มจำนวนเซ็ตและท่าเฉพาะทางสำหรับกลุ่มกล้ามเนื้อเหล่านี้ในตารางฝึก
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    เน้น {targetMuscles.length} ส่วน
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                  {[
+                    { id: "chest", label: "อก (Chest)", icon: "🛡️" },
+                    { id: "back", label: "หลัง & ปีก (Back)", icon: "🦅" },
+                    { id: "shoulders_arms", label: "ไหล่ & แขน", icon: "💪" },
+                    { id: "abs", label: "ซิกแพค & แกนกลาง", icon: "⚡" },
+                    { id: "glutes", label: "ก้น & สะโพก", icon: "🍑" },
+                    { id: "legs", label: "ขา & น่อง", icon: "🦵" },
+                  ].map((muscle) => {
+                    const isSelected = targetMuscles.includes(muscle.id);
+                    return (
+                      <button
+                        key={muscle.id}
+                        type="button"
+                        onClick={() => {
+                          if (targetMuscles.includes(muscle.id)) {
+                            if (targetMuscles.length > 1) {
+                              setTargetMuscles(targetMuscles.filter((m) => m !== muscle.id));
+                            }
+                          } else {
+                            setTargetMuscles([...targetMuscles, muscle.id]);
+                          }
+                        }}
+                        className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1 ${
+                          isSelected
+                            ? "bg-emerald-500 border-emerald-600 text-white shadow-sm font-bold"
+                            : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 font-medium"
+                        }`}
+                      >
+                        <span className="text-xl">{muscle.icon}</span>
+                        <span className="text-xs">{muscle.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* -------------------------------------------------------------
+                  เครื่องมือ AI สแกนวิเคราะห์สรีระ (AI Body Compatibility Analyzer)
+                 ------------------------------------------------------------- */}
+              <div className="pt-2 border-t border-zinc-100">
+                <AIBodyScanner
+                  targetMuscles={targetMuscles}
+                  userGender={gender}
+                  userHeight={Number(height) || 170}
+                  userWeight={Number(weight) || 65}
+                  bmi={bmi}
+                  initialResult={bodyScanResult}
+                  onScanComplete={(result) => {
+                    setBodyScanResult(result);
+                  }}
+                  onSkip={() => {
+                    setBodyScanResult(null);
+                  }}
+                />
               </div>
 
               {/* ระยะเวลาเป้าหมาย (Dropdown) */}
@@ -1192,6 +1332,34 @@ export default function AssessmentPage() {
             </div>
 
             <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+              {/* สไตล์การทานอาหารในชีวิตประจำวัน */}
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 mb-2">
+                  สไตล์การทานอาหารในชีวิตประจำวัน (ความสะดวกในการจัดการอาหาร)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: "street_food", title: "ทานนอกบ้าน / อาหารตามสั่ง", desc: "ซื้อทานเป็นหลัก ระบบจะแนะนำเมนูตามสั่งที่สั่งแบบเฮลท์ตี้ได้" },
+                    { id: "home_cook", title: "ทำอาหารทานเอง", desc: "เตรียมวัตถุดิบเอง แนะนำสูตรทำง่าย สัดส่วน 2:1:1 ชัดเจน" },
+                    { id: "mixed", title: "ผสมผสานตามสะดวก", desc: "ทำทานเองบางมื้อ ซื้อทานนอกบ้านบางมื้อ ตามจังหวะชีวิต" },
+                  ].map((style) => (
+                    <button
+                      key={style.id}
+                      type="button"
+                      onClick={() => setEatingStyle(style.id as "street_food" | "home_cook" | "mixed")}
+                      className={`p-3 rounded-2xl border text-left transition ${
+                        eatingStyle === style.id
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-zinc-200 bg-white hover:bg-zinc-50"
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-zinc-900">{style.title}</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">{style.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* รูปแบบการกิน */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 mb-2">
@@ -1462,6 +1630,92 @@ export default function AssessmentPage() {
                 <div className="text-[11px] font-semibold text-emerald-700">เป้าหมายพลังงานแนะนำ</div>
                 <div className="text-2xl font-black text-emerald-600 mt-1">{targetCalories}</div>
                 <div className="text-[10px] text-emerald-700 font-medium mt-1">kcal / วัน</div>
+              </div>
+            </div>
+
+            {/* กล่องสรุปการปรับแต่งเฉพาะบุคคลตามข้อมูลที่กรอก */}
+            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-emerald-900">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                การปรับแต่งโปรแกรมเฉพาะบุคคลของคุณ (Personalized Strategy):
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-zinc-700">
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
+                  <strong className="text-zinc-900">ระดับความหนักที่เลือก:</strong>{" "}
+                  {workoutIntensity === "light" ? "ระดับเบา (เน้นความปลอดภัย สบายๆ)" : workoutIntensity === "intense" ? "ระดับเข้มข้น (ท้าทายความแข็งแกร่ง)" : "ระดับปานกลาง (สมดุลและฟิต)"}
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
+                  <strong className="text-zinc-900">การนอนและการฟื้นตัว:</strong>{" "}
+                  {sleepHours === "short" ? "นอนน้อย (จัดตารางฟื้นฟูกล้ามเนื้อเพิ่ม)" : sleepHours === "optimal" ? "การนอนหลับ 7-8 ชม. เหมาะสม" : "พักผ่อนเต็มที่"}
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
+                  <strong className="text-zinc-900">เป้าหมายสารอาหาร:</strong> {targetCalories} kcal / โปรตีน {targetProteinGrams} กรัม/วัน
+                </div>
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200/80">
+                  <strong className="text-zinc-900">สไตล์การกิน:</strong>{" "}
+                  {eatingStyle === "street_food" ? "เน้นเมนูอาหารตามสั่งสั่งแบบสุขภาพดี" : eatingStyle === "home_cook" ? "เน้นเมนูทำเองสัดส่วน 2:1:1" : "ผสมผสานตามสะดวก"}
+                </div>
+              </div>
+            </div>
+
+            {/* สรุปผลการวิเคราะห์สรีระและกล้ามเนื้อเป้าหมาย (AI Body Structure & Target Muscles) */}
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-zinc-900 via-slate-900 to-black text-white border border-zinc-700/80 shadow-xl space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <h3 className="font-bold text-sm text-white">
+                    ผลวิเคราะห์สรีระ &amp; จุดเน้นกล้ามเนื้อ (AI Body Analysis &amp; Target Muscles)
+                  </h3>
+                </div>
+                {bodyScanResult && (
+                  <span className="text-xs font-black text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full">
+                    🎯 ความพร้อมของสรีระ {bodyScanResult.matchScore}%
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 rounded-2xl bg-zinc-800/80 border border-zinc-700/70 space-y-1">
+                  <div className="text-[10px] font-bold text-zinc-400 uppercase">มัดกล้ามเนื้อที่มุ่งเน้นในตารางฝึก</div>
+                  <div className="text-sm font-black text-emerald-300">
+                    {targetMuscles.length > 0
+                      ? targetMuscles
+                          .map((m) =>
+                            m === "chest"
+                              ? "อก"
+                              : m === "back"
+                              ? "หลัง/ปีก"
+                              : m === "shoulders_arms"
+                              ? "ไหล่/แขน"
+                              : m === "abs"
+                              ? "ซิกแพค"
+                              : m === "glutes"
+                              ? "ก้น/สะโพก"
+                              : "ขา"
+                          )
+                          .join(", ")
+                      : "พัฒนากล้ามเนื้อทั่วเรือนร่าง (Full Body Balance)"}
+                  </div>
+                  <div className="text-[11px] text-zinc-300 mt-1">
+                    ระบบจะเพิ่มจำนวนเซ็ตและแบบฝึกเฉพาะส่วนในโปรแกรมของคุณ
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-zinc-800/80 border border-zinc-700/70 space-y-1">
+                  <div className="text-[10px] font-bold text-zinc-400 uppercase">
+                    {bodyScanResult ? "ผลการสแกนสรีระโครงสร้าง (AI Body Frame)" : "สถานะการสแกนสรีระ"}
+                  </div>
+                  <div className="text-sm font-black text-teal-300">
+                    {bodyScanResult
+                      ? `สัดส่วน V-Taper: ${bodyScanResult.shoulderToHipRatio} : 1.0 (${bodyScanResult.somatotypeThai})`
+                      : "ข้ามการสแกนสรีระ (ไม่ได้เปิดกล้องหรือแนบรูป)"}
+                  </div>
+                  <div className="text-[11px] text-zinc-300 mt-1 line-clamp-2">
+                    {bodyScanResult
+                      ? bodyScanResult.frameTitle
+                      : `จัดโปรแกรมตามเกณฑ์มาตรฐาน BMI (${bmi}) และจุดเน้นกล้ามเนื้อที่คุณเลือก โดยไม่มีการคาดเดาสัดส่วน`}
+                  </div>
+                </div>
               </div>
             </div>
 
