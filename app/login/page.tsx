@@ -188,16 +188,12 @@ export default function LoginPage() {
               <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider">
                 รหัสผ่าน
               </label>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert("ระบบรีเซ็ตรหัสผ่านกำลังอยู่ในช่วงพัฒนา");
-                }}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition"
+              <Link
+                href="/forgot-password"
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition hover:underline"
               >
                 ลืมรหัสผ่าน?
-              </a>
+              </Link>
             </div>
             <div className="relative">
               <input
