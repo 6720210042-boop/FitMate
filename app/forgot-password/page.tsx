@@ -13,7 +13,6 @@ export default function ForgotPasswordPage() {
   // ข้อมูลฟอร์ม
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [generatedOtp, setGeneratedOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
@@ -41,13 +40,8 @@ export default function ForgotPasswordPage() {
     return () => clearInterval(timer);
   }, [step, countdown]);
 
-  // ฟังก์ชันสร้าง OTP สุ่ม 6 หลัก
-  const createRandomOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
-
-  // ขั้นตอนที่ 1: ตรวจสอบอีเมลและส่งรหัส OTP
-  const handleRequestOtp = (e: React.FormEvent) => {
+  // ขั้นตอนที่ 1: ตรวจสอบอีเมลและส่งรหัส OTP ผ่าน Server API จริง
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
@@ -65,74 +59,118 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    // ตรวจสอบกับบัญชีในระบบ
+    if (typeof window !== "undefined") {
+      let accounts: Array<{ name: string; email: string; password: string }> = [];
+      try {
+        const stored = localStorage.getItem("fitmate_accounts");
+        if (stored) accounts = JSON.parse(stored);
+      } catch {
+        accounts = [];
+      }
+
+      const found = accounts.find((a) => a.email === normalizedEmail);
+      if (!found) {
+        setErrorMessage("ไม่พบบัญชีที่ใช้อีเมลนี้ในระบบ กรุณาตรวจสอบอีเมลหรือสมัครสมาชิกใหม่");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
-    setTimeout(() => {
-      if (typeof window !== "undefined") {
-        let accounts: Array<{ name: string; email: string; password: string }> = [];
-        try {
-          const stored = localStorage.getItem("fitmate_accounts");
-          if (stored) accounts = JSON.parse(stored);
-        } catch {
-          accounts = [];
-        }
+    try {
+      // เรียกใช้ API Route ฝั่ง Server เพื่อส่งอีเมลจริง
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
 
-        const found = accounts.find((a) => a.email === normalizedEmail);
-        if (!found) {
-          setIsLoading(false);
-          setErrorMessage("ไม่พบบัญชีที่ใช้อีเมลนี้ในระบบ กรุณาตรวจสอบอีเมลหรือสมัครสมาชิกใหม่");
-          return;
-        }
+      const data = await response.json();
 
-        // สร้าง OTP 6 หลัก
-        const newOtp = createRandomOtp();
-        setGeneratedOtp(newOtp);
+      if (response.ok && data.success) {
         setIsLoading(false);
         setStep(2);
         setCountdown(60);
         setCanResend(false);
-        setSuccessMessage(`ส่งรหัสยืนยัน 6 หลักไปยังอีเมล ${normalizedEmail} เรียบร้อยแล้ว`);
+        setSuccessMessage(`ระบบได้ส่งรหัสยืนยัน OTP ไปยังอีเมล ${normalizedEmail} แล้ว`);
+      } else {
+        setIsLoading(false);
+        setErrorMessage(data.error || "ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบการตั้งค่าอีเมล");
       }
-    }, 600);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMessage("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   // ขอ OTP ใหม่อีกครั้ง
-  const handleResendOtp = () => {
+  const handleResendOtp = async () => {
     if (!canResend) return;
     setIsLoading(true);
     setErrorMessage("");
-    setTimeout(() => {
-      const newOtp = createRandomOtp();
-      setGeneratedOtp(newOtp);
-      setCountdown(60);
-      setCanResend(false);
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setCountdown(60);
+        setCanResend(false);
+        setIsLoading(false);
+        setSuccessMessage("ส่งรหัสยืนยัน OTP ใหม่ไปยังอีเมลของคุณเรียบร้อยแล้ว");
+      } else {
+        setIsLoading(false);
+        setErrorMessage(data.error || "ไม่สามารถขอรหัสใหม่ได้ กรุณาลองใหม่อีกครั้ง");
+      }
+    } catch {
       setIsLoading(false);
-      setSuccessMessage("ส่งรหัสยืนยัน OTP ใหม่ให้เรียบร้อยแล้ว");
-    }, 400);
+      setErrorMessage("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+    }
   };
 
-  // ขั้นตอนที่ 2: ตรวจสอบรหัส OTP
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  // ขั้นตอนที่ 2: ตรวจสอบรหัส OTP กับทางเซิร์ฟเวอร์
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
     const trimmedOtp = otp.trim();
-    if (!trimmedOtp) {
-      setErrorMessage("กรุณากรอกรหัส OTP 6 หลัก");
-      return;
-    }
-
-    if (trimmedOtp !== generatedOtp) {
-      setErrorMessage("รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
+    if (!trimmedOtp || trimmedOtp.length < 6) {
+      setErrorMessage("กรุณากรอกรหัส OTP 6 หลักที่ได้รับในอีเมล");
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          otp: trimmedOtp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsLoading(false);
+        setSuccessMessage("ยืนยันรหัส OTP ถูกต้อง กรุณาตั้งรหัสผ่านใหม่");
+        setStep(3);
+      } else {
+        setIsLoading(false);
+        setErrorMessage(data.error || "รหัส OTP ไม่ถูกต้อง กรุณาตรวจสอบอีเมลอีกครั้ง");
+      }
+    } catch {
       setIsLoading(false);
-      setSuccessMessage("ยืนยันรหัส OTP สำเร็จ กรุณาตั้งรหัสผ่านใหม่");
-      setStep(3);
-    }, 500);
+      setErrorMessage("เกิดข้อผิดพลาดในการตรวจสอบรหัส OTP กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   // ขั้นตอนที่ 3: บันทึกรหัสผ่านใหม่ลงฐานข้อมูล
@@ -179,7 +217,7 @@ export default function ForgotPasswordPage() {
         accounts[accountIndex].password = newPassword;
         localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
 
-        // หากผู้ใช้นี้กำลังล็อกอินค้างอยู่ ให้รีเฟรชข้อมูลหรือออกจากระบบเพื่อความปลอดภัย
+        // ลบ session เก่าออกเพื่อความปลอดภัย
         const currentUserStored = localStorage.getItem("fitmate_user");
         if (currentUserStored) {
           try {
@@ -195,7 +233,7 @@ export default function ForgotPasswordPage() {
 
       setIsLoading(false);
       setStep(4);
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -231,7 +269,7 @@ export default function ForgotPasswordPage() {
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
             {step === 1 && "กรอกอีเมลของคุณเพื่อรับรหัสยืนยันความปลอดภัย"}
-            {step === 2 && "กรอกรหัสยืนยัน OTP 6 หลักที่ได้รับ"}
+            {step === 2 && "กรอกรหัสยืนยัน OTP 6 หลักที่ได้รับในกล่องข้อความอีเมล"}
             {step === 3 && "กำหนดรหัสผ่านใหม่สำหรับเข้าสู่ระบบ"}
             {step === 4 && "เปลี่ยนรหัสผ่านเสร็จสมบูรณ์ พร้อมใช้งาน"}
           </p>
@@ -278,7 +316,7 @@ export default function ForgotPasswordPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="กรอกอีเมลของคุณ"
+                placeholder="กรอกอีเมลของคุณ เช่น user@gmail.com"
                 className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
                 autoComplete="email"
                 autoFocus
@@ -296,7 +334,7 @@ export default function ForgotPasswordPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  กำลังตรวจสอบบัญชี...
+                  กำลังจัดส่งรหัสไปยังอีเมล...
                 </>
               ) : (
                 "ขอรหัสยืนยัน OTP"
@@ -308,35 +346,23 @@ export default function ForgotPasswordPage() {
         {/* ----------------- STEP 2: กรอกรหัส OTP ----------------- */}
         {step === 2 && (
           <div className="space-y-4">
-            {/* กล่องจำลองการส่งรหัสไปยังกล่องข้อความอีเมล (Email Inbox Simulator Toast) */}
-            <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs">
-              <div className="flex items-center justify-between font-bold mb-1 text-sky-950">
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  จำลองการส่งเข้าอีเมล:
-                </span>
-                <span className="font-mono text-emerald-700 bg-emerald-100/90 border border-emerald-300 px-2 py-0.5 rounded-lg text-sm tracking-wider font-extrabold">
-                  {generatedOtp}
-                </span>
+            {/* กล่องแจ้งข้อมูลอีเมลจริง */}
+            <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950 text-xs">
+              <div className="flex items-center gap-2 font-bold text-emerald-900 mb-1">
+                <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                ส่งรหัส OTP ไปยังกล่องจดหมายแล้ว
               </div>
-              <p className="text-[11px] text-sky-700 leading-relaxed">
-                รหัสความปลอดภัยสำหรับรีเซ็ตรหัสผ่านคือ <strong>{generatedOtp}</strong>
+              <p className="text-[11.5px] text-emerald-800 leading-relaxed">
+                กรุณาเปิดตรวจสอบกล่องข้อความ (Inbox หรือ จดหมายขยะ/Spam) ในอีเมล <strong>{email}</strong> แล้วนำรหัสยืนยัน 6 หลักมากรอกยืนยันด้านล่างนี้
               </p>
-              <button
-                type="button"
-                onClick={() => setOtp(generatedOtp)}
-                className="mt-2 text-[11px] text-sky-700 hover:text-sky-900 font-bold underline cursor-pointer"
-              >
-                คลิกที่นี่เพื่อกรอกรหัส {generatedOtp} อัตโนมัติ
-              </button>
             </div>
 
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
-                  รหัสยืนยัน OTP (6 หลัก)
+                  รหัสยืนยัน OTP (6 หลักจากอีเมล)
                 </label>
                 <input
                   type="text"
@@ -345,7 +371,7 @@ export default function ForgotPasswordPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   placeholder="เช่น 123456"
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center font-mono text-lg tracking-widest text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-center font-mono text-xl tracking-widest text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
                   autoFocus
                 />
               </div>
@@ -368,7 +394,11 @@ export default function ForgotPasswordPage() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setStep(1);
+                    setOtp("");
+                    setErrorMessage("");
+                  }}
                   className="w-1/3 py-2.5 rounded-xl border border-zinc-200 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition"
                 >
                   ย้อนกลับ
@@ -378,7 +408,17 @@ export default function ForgotPasswordPage() {
                   disabled={isLoading || otp.length < 6}
                   className="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-md shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  {isLoading ? "กำลังตรวจสอบ..." : "ยืนยันรหัส OTP"}
+                  {isLoading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      กำลังตรวจสอบ...
+                    </>
+                  ) : (
+                    "ยืนยันรหัส OTP"
+                  )}
                 </button>
               </div>
             </form>
@@ -457,7 +497,7 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !newPassword || !confirmNewPassword}
               className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
@@ -475,22 +515,21 @@ export default function ForgotPasswordPage() {
           </form>
         )}
 
-        {/* ----------------- STEP 4: ทำรายการสำเร็จ ----------------- */}
+        {/* ----------------- STEP 4: สำเร็จ ----------------- */}
         {step === 4 && (
-          <div className="text-center py-4 space-y-4">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+          <div className="text-center py-4 space-y-4 animate-fadeIn">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-zinc-900">เปลี่ยนรหัสผ่านสำเร็จ!</h2>
-              <p className="text-xs text-zinc-500 mt-1">
-                รหัสผ่านสำหรับบัญชี <strong>{email}</strong> ได้รับการอัปเดตเรียบร้อยแล้ว ท่านสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที
+              <h2 className="text-xl font-bold text-zinc-900">เปลี่ยนรหัสผ่านสำเร็จ!</h2>
+              <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto">
+                รหัสผ่านใหม่ของท่านได้รับการบันทึกเรียบร้อยแล้ว สามารถใช้เข้าสู่ระบบได้ทันที
               </p>
             </div>
             <button
-              type="button"
               onClick={() => router.push("/login")}
               className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-[0.99]"
             >
@@ -499,14 +538,12 @@ export default function ForgotPasswordPage() {
           </div>
         )}
 
-        {/* ลิงก์กลับ */}
-        <div className="mt-6 pt-6 border-t border-zinc-100 text-center">
-          <p className="text-xs text-zinc-500">
-            นึกรหัสผ่านออกแล้ว?{" "}
-            <Link href="/login" className="text-emerald-600 font-semibold hover:text-emerald-700 transition">
-              เข้าสู่ระบบที่นี่
-            </Link>
-          </p>
+        {/* ส่วนท้าย ลิงก์กลับ */}
+        <div className="mt-8 pt-5 border-t border-zinc-100 text-center text-xs text-zinc-500">
+          นึกรหัสผ่านออกแล้ว?{" "}
+          <Link href="/login" className="text-emerald-600 font-bold hover:underline">
+            เข้าสู่ระบบที่นี่
+          </Link>
         </div>
       </div>
     </main>
