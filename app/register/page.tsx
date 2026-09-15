@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -55,7 +56,15 @@ export default function RegisterPage() {
     setTimeout(() => {
       // ตรวจสอบและบันทึกข้อมูลบัญชีลงใน localStorage (fitmate_accounts)
       if (typeof window !== "undefined") {
-        let accounts: Array<{ name: string; email: string; password: string }> = [];
+        let accounts: Array<{
+          name: string;
+          email: string;
+          password: string;
+          role?: string;
+          status?: string;
+          createdAt?: string;
+          lastLogin?: string;
+        }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
           if (stored) accounts = JSON.parse(stored);
@@ -70,10 +79,18 @@ export default function RegisterPage() {
           return;
         }
 
+        const isAdmin =
+          normalizedEmail === "adminchin@fitmate.app" ||
+          normalizedEmail === "pathomphon7n@gmail.com" ||
+          normalizedEmail.startsWith("admin@");
         accounts.push({
           name: trimmedName,
           email: normalizedEmail,
           password,
+          role: isAdmin ? "admin" : "user",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
         });
         localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
 
@@ -81,6 +98,7 @@ export default function RegisterPage() {
         const userProfile = {
           name: trimmedName,
           email: normalizedEmail,
+          role: isAdmin ? "admin" : "user",
           loggedIn: true,
         };
         localStorage.setItem("fitmate_user", JSON.stringify(userProfile));
@@ -98,16 +116,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-zinc-900 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-      {/* แสงเอฟเฟกต์พื้นหลังโทนสว่าง */}
-      <div className="absolute top-10 right-10 w-96 h-96 bg-emerald-100/70 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 left-10 w-80 h-80 bg-teal-100/60 rounded-full blur-3xl pointer-events-none" />
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-zinc-900 dark:text-slate-100 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden transition-colors duration-200">
+      {/* แสงเอฟเฟกต์พื้นหลัง */}
+      <div className="absolute top-10 right-10 w-96 h-96 bg-emerald-100/70 dark:bg-emerald-900/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-80 h-80 bg-teal-100/60 dark:bg-teal-900/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* แถบย้อนกลับ */}
       <div className="w-full max-w-md mb-4 flex items-center justify-between z-10">
         <Link
           href="/"
-          className="inline-flex items-center text-xs text-zinc-500 hover:text-emerald-600 transition gap-1.5 font-medium"
+          className="inline-flex items-center text-xs text-zinc-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition gap-1.5 font-medium"
         >
           <svg
             className="w-4 h-4"
@@ -124,27 +142,30 @@ export default function RegisterPage() {
           </svg>
           กลับหน้าหลัก
         </Link>
-        <span className="text-xs text-zinc-500">
-          มีบัญชีอยู่แล้ว?{" "}
-          <Link
-            href="/login"
-            className="text-emerald-600 font-medium hover:underline"
-          >
-            เข้าสู่ระบบ
-          </Link>
-        </span>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <span className="text-xs text-zinc-500 dark:text-slate-400">
+            มีบัญชีอยู่แล้ว?{" "}
+            <Link
+              href="/login"
+              className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+            >
+              เข้าสู่ระบบ
+            </Link>
+          </span>
+        </div>
       </div>
 
-      {/* กล่องการ์ดลงทะเบียนโทนสว่าง */}
-      <div className="w-full max-w-md bg-white border border-zinc-200/80 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 backdrop-blur-xl relative z-10">
+      {/* กล่องการ์ดลงทะเบียน */}
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 dark:shadow-slate-950/60 backdrop-blur-xl relative z-10">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-xl shadow-md shadow-emerald-500/20 mb-2">
             FM
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            สร้างบัญชี <span className="text-emerald-600">FitMate</span>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            สร้างบัญชี <span className="text-emerald-600 dark:text-emerald-400">FitMate</span>
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-slate-400 mt-1">
             เริ่มต้นวางแผนสุขภาพและฟิตหุ่นอย่างยั่งยืน
           </p>
         </div>
@@ -189,7 +210,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               ชื่อผู้ใช้งาน / ชื่อเล่น *
             </label>
             <input
@@ -198,12 +219,12 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="กรอกชื่อของคุณ หรือชื่อเล่น"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               อีเมล *
             </label>
             <input
@@ -212,12 +233,12 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="กรอกอีเมลของคุณ"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               รหัสผ่าน (อย่างน้อย 6 ตัวอักษร) *
             </label>
             <div className="relative">
@@ -227,7 +248,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="กรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
-                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
               />
               <button
                 type="button"

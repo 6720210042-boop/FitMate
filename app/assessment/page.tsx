@@ -4,6 +4,7 @@ import { useState, useEffect, useId } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AIBodyScanner, { BodyScanResult } from "./AIBodyScanner";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // รายการโรคประจำตัว
 const CHRONIC_DISEASES = [
@@ -417,20 +418,20 @@ export default function AssessmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-zinc-900 selection:bg-emerald-500 selection:text-white pb-24 relative">
-      {/* แสงเอฟเฟกต์พื้นหลังโทนสว่าง */}
-      <div className="absolute top-0 right-10 w-96 h-96 bg-emerald-100/50 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-5 w-80 h-80 bg-teal-100/50 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-emerald-500 selection:text-white pb-24 relative transition-colors duration-200">
+      {/* แสงเอฟเฟกต์พื้นหลัง */}
+      <div className="absolute top-0 right-10 w-96 h-96 bg-emerald-100/50 dark:bg-emerald-950/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-5 w-80 h-80 bg-teal-100/50 dark:bg-teal-950/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* แถบนำทางด้านบน */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 py-4">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 font-black text-white text-base shadow-sm">
               FM
             </div>
-            <span className="text-lg font-black tracking-tight text-zinc-900">
-              Fit<span className="text-emerald-600">Mate</span>
+            <span className="text-lg font-black tracking-tight text-zinc-900 dark:text-zinc-100">
+              Fit<span className="text-emerald-600 dark:text-emerald-400">Mate</span>
             </span>
           </Link>
 
@@ -438,23 +439,24 @@ export default function AssessmentPage() {
             {hasExistingAssessment && (
               <Link
                 href="/dashboard"
-                className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-semibold"
+                className="text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-lg transition flex items-center gap-1 font-semibold"
               >
                 ไปยัง Dashboard ของฉัน
               </Link>
             )}
-            <span className="text-xs text-zinc-500 hidden sm:inline">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400 hidden sm:inline">
               ขั้นตอนที่ {step} จาก 4
             </span>
             <Link
               href="/"
-              className="text-xs text-zinc-500 hover:text-emerald-600 transition flex items-center gap-1 font-medium"
+              className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition flex items-center gap-1 font-medium"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               กลับหน้าหลัก
             </Link>
+            <ThemeToggle />
           </div>
         </div>
       </header>
