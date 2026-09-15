@@ -10,7 +10,7 @@
 
 html.dark,
 .dark {
-  --background: #090d16;
+  --background: #0a0e1a;
   --foreground: #f8fafc;
   color-scheme: dark;
 }
@@ -36,187 +36,253 @@ body {
 }
 
 /* ==========================================================================
-   Global Dark Theme Overrides
-   Ensures ALL pages, cards, and text automatically adapt when .dark is active
+   PREMIUM MODERN DARK THEME DESIGN SYSTEM (FitMate Luxury Dark Mode)
+   Curated palette inspired by Linear, Apple & Vercel
    ========================================================================== */
 
-/* Page Backgrounds */
+/* 1. Base Canvas & Page Backgrounds */
 .dark,
-.dark body,
-.dark .bg-slate-50,
-.dark .bg-zinc-50,
-.dark .bg-gray-50 {
-  background-color: #090d16 !important;
+.dark body {
+  background-color: #0a0e1a !important;
+  color: #f8fafc !important;
 }
 
-/* Card & Surface Backgrounds */
-.dark .bg-white {
+.dark [class*="bg-slate-50"],
+.dark [class*="bg-zinc-50"],
+.dark [class*="bg-gray-50"] {
+  background-color: #0a0e1a !important;
+}
+
+/* 2. Main Cards (Primary Surfaces) */
+.dark [class*="bg-white"] {
   background-color: #111827 !important;
-}
-
-.dark .bg-white\/80,
-.dark .bg-white\/85,
-.dark .bg-white\/90,
-.dark .bg-white\/95 {
-  background-color: rgba(17, 24, 39, 0.85) !important;
-}
-
-.dark .bg-zinc-100,
-.dark .bg-slate-100,
-.dark .bg-gray-100 {
-  background-color: #1a2234 !important;
-}
-
-.dark .bg-zinc-200,
-.dark .bg-slate-200 {
-  background-color: #243048 !important;
-}
-
-/* Borders */
-.dark .border-zinc-200,
-.dark .border-zinc-200\/80,
-.dark .border-zinc-200\/90,
-.dark .border-zinc-200\/60,
-.dark .border-zinc-100,
-.dark .border-slate-200,
-.dark .border-slate-100 {
   border-color: #1e293b !important;
 }
 
-/* Text Colors */
-.dark .text-zinc-950,
-.dark .text-zinc-900,
-.dark .text-slate-950,
-.dark .text-slate-900 {
+/* Sticky Headers & Glassmorphic Navbars */
+.dark header[class*="bg-white"],
+.dark [class*="bg-white/80"],
+.dark [class*="bg-white/85"],
+.dark [class*="bg-white/90"],
+.dark [class*="bg-white/95"] {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  backdrop-filter: blur(16px) !important;
+  border-color: #1e293b !important;
+}
+
+/* 3. Elevated Nested Cards & Panels (Metric boxes, sub-containers, FITT blocks) */
+.dark [class*="bg-slate-50/"],
+.dark [class*="bg-zinc-100"],
+.dark [class*="bg-slate-100"],
+.dark [class*="bg-gray-100"] {
+  background-color: #172133 !important;
+  border-color: #24334c !important;
+}
+
+/* Subtle border dividers */
+.dark .border,
+.dark .border-b,
+.dark .border-t,
+.dark .border-l,
+.dark .border-r,
+.dark [class*="border-zinc-100"],
+.dark [class*="border-zinc-200"],
+.dark [class*="border-slate-100"],
+.dark [class*="border-slate-200"] {
+  border-color: #1e293b !important;
+}
+
+/* 4. High-Contrast Typography */
+.dark [class*="text-zinc-950"],
+.dark [class*="text-zinc-900"],
+.dark [class*="text-slate-950"],
+.dark [class*="text-slate-900"] {
   color: #f8fafc !important;
 }
 
-.dark .text-zinc-800,
-.dark .text-slate-800 {
+.dark [class*="text-zinc-800"],
+.dark [class*="text-slate-800"] {
   color: #e2e8f0 !important;
 }
 
-.dark .text-zinc-700,
-.dark .text-slate-700 {
+.dark [class*="text-zinc-700"],
+.dark [class*="text-slate-700"] {
   color: #cbd5e1 !important;
 }
 
-.dark .text-zinc-600,
-.dark .text-slate-600 {
+.dark [class*="text-zinc-600"],
+.dark [class*="text-slate-600"] {
   color: #94a3b8 !important;
 }
 
-.dark .text-zinc-500,
-.dark .text-slate-500 {
+.dark [class*="text-zinc-500"],
+.dark [class*="text-slate-500"] {
   color: #64748b !important;
 }
 
-.dark .text-zinc-400,
-.dark .text-slate-400 {
+.dark [class*="text-zinc-400"],
+.dark [class*="text-slate-400"] {
   color: #94a3b8 !important;
 }
 
-/* Accent Tinted Cards & Badges */
-.dark .bg-emerald-50 {
-  background-color: rgba(6, 78, 59, 0.3) !important;
+/* 5. Rich Accent Badges & Alerts (Frosted Glow Aesthetics) */
+
+/* Medical / Amber Warning */
+.dark [class*="bg-amber-50"] {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  color: #fef08a !important;
 }
-.dark .border-emerald-200 {
-  border-color: rgba(16, 185, 129, 0.3) !important;
+.dark [class*="bg-amber-50"] strong,
+.dark [class*="text-amber-950"],
+.dark [class*="text-amber-900"],
+.dark [class*="text-amber-800"] {
+  color: #fef08a !important;
 }
-.dark .text-emerald-900,
-.dark .text-emerald-800,
-.dark .text-emerald-700 {
-  color: #6ee7b7 !important;
+.dark [class*="text-amber-600"] {
+  color: #fbbf24 !important;
 }
 
-.dark .bg-teal-50 {
-  background-color: rgba(17, 94, 89, 0.3) !important;
+/* PAR-Q / Rose Danger Alert */
+.dark [class*="bg-rose-50"] {
+  background-color: rgba(244, 63, 94, 0.08) !important;
+  border-color: rgba(244, 63, 94, 0.25) !important;
+  color: #fecdd3 !important;
 }
-.dark .border-teal-200 {
-  border-color: rgba(20, 184, 166, 0.3) !important;
+.dark [class*="bg-rose-100"] {
+  background-color: rgba(244, 63, 94, 0.18) !important;
+  color: #fda4af !important;
 }
-.dark .text-teal-900,
-.dark .text-teal-800,
-.dark .text-teal-700 {
-  color: #5eead4 !important;
-}
-
-.dark .bg-purple-50 {
-  background-color: rgba(88, 28, 135, 0.3) !important;
-}
-.dark .border-purple-200 {
-  border-color: rgba(168, 85, 247, 0.3) !important;
-}
-.dark .text-purple-700,
-.dark .text-purple-800 {
-  color: #c084fc !important;
-}
-
-.dark .bg-amber-50 {
-  background-color: rgba(120, 53, 15, 0.3) !important;
-}
-.dark .border-amber-200 {
-  border-color: rgba(245, 158, 11, 0.3) !important;
-}
-.dark .text-amber-800,
-.dark .text-amber-900 {
-  color: #fcd34d !important;
-}
-
-.dark .bg-rose-50 {
-  background-color: rgba(136, 19, 55, 0.3) !important;
-}
-.dark .border-rose-200 {
-  border-color: rgba(244, 63, 94, 0.3) !important;
-}
-.dark .text-rose-700,
-.dark .text-rose-800 {
+.dark [class*="text-rose-950"],
+.dark [class*="text-rose-900"],
+.dark [class*="text-rose-800"],
+.dark [class*="text-rose-700"] {
   color: #fda4af !important;
 }
 
-.dark .bg-blue-50 {
-  background-color: rgba(30, 58, 138, 0.3) !important;
+/* Emerald Healthy & Fitness Goals */
+.dark [class*="bg-emerald-50"] {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.28) !important;
+  color: #6ee7b7 !important;
 }
-.dark .border-blue-200 {
-  border-color: rgba(59, 130, 246, 0.3) !important;
+.dark [class*="text-emerald-950"],
+.dark [class*="text-emerald-900"],
+.dark [class*="text-emerald-800"],
+.dark [class*="text-emerald-700"] {
+  color: #34d399 !important;
 }
-.dark .text-blue-700,
-.dark .text-blue-800 {
-  color: #93c5fd !important;
+.dark [class*="text-emerald-600"] {
+  color: #34d399 !important;
+}
+.dark [class*="bg-emerald-100"] {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  color: #6ee7b7 !important;
 }
 
-/* Form Inputs, Selects, Textareas */
+/* Teal Nutrition & Diet */
+.dark [class*="bg-teal-50"] {
+  background-color: rgba(20, 184, 166, 0.12) !important;
+  border-color: rgba(20, 184, 166, 0.28) !important;
+  color: #5eead4 !important;
+}
+.dark [class*="text-teal-950"],
+.dark [class*="text-teal-900"],
+.dark [class*="text-teal-800"],
+.dark [class*="text-teal-700"],
+.dark [class*="text-teal-600"] {
+  color: #2dd4bf !important;
+}
+
+/* Cyan Hydration */
+.dark [class*="text-cyan-600"] {
+  color: #38bdf8 !important;
+}
+
+/* Purple Admin Badge */
+.dark [class*="bg-purple-50"] {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(168, 85, 247, 0.28) !important;
+  color: #d8b4fe !important;
+}
+.dark [class*="text-purple-700"],
+.dark [class*="text-purple-800"] {
+  color: #c084fc !important;
+}
+
+/* Blue Info Badges */
+.dark [class*="bg-blue-50"] {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.28) !important;
+  color: #93c5fd !important;
+}
+.dark [class*="text-blue-700"],
+.dark [class*="text-blue-800"] {
+  color: #60a5fa !important;
+}
+
+/* 6. Navigation Tabs (Pill Bar) */
+.dark [class*="bg-zinc-200"] {
+  background-color: #111827 !important;
+  border: 1px solid #1e293b !important;
+}
+.dark [class*="bg-zinc-200"] button:not(.bg-white):not([class*="bg-zinc-900"]) {
+  color: #94a3b8 !important;
+}
+.dark [class*="bg-zinc-200"] button:not(.bg-white):not([class*="bg-zinc-900"]):hover {
+  color: #f8fafc !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.dark [class*="bg-zinc-200"] button.bg-white {
+  background-color: #1c273c !important;
+  border-color: #2e3e5c !important;
+  color: #34d399 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+.dark [class*="bg-zinc-200"] button[class*="bg-zinc-900"] {
+  background-color: #1c273c !important;
+  border-color: #2e3e5c !important;
+  color: #f8fafc !important;
+}
+
+/* 7. Form Inputs & Selects */
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
 .dark select,
 .dark textarea {
-  background-color: #161f30 !important;
+  background-color: #151f32 !important;
   color: #f8fafc !important;
   border-color: #27354f !important;
 }
-
 .dark input:focus,
 .dark select:focus,
 .dark textarea:focus {
   border-color: #10b981 !important;
   box-shadow: 0 0 0 1px #10b981 !important;
 }
-
 .dark input::placeholder,
 .dark textarea::placeholder {
   color: #64748b !important;
 }
 
-/* Hover States */
-.dark .hover\:bg-zinc-50:hover,
-.dark .hover\:bg-slate-50:hover,
-.dark .hover\:bg-zinc-100:hover,
-.dark .hover\:bg-slate-100:hover {
-  background-color: #1e293b !important;
+/* 8. Action Buttons (Print, Edit, Reset, Logout) */
+.dark button[class*="bg-white"],
+.dark a[class*="bg-white"],
+.dark a[class*="bg-slate-50"] {
+  background-color: #151f32 !important;
+  border-color: #27354f !important;
+  color: #cbd5e1 !important;
+}
+.dark button[class*="bg-white"]:hover,
+.dark a[class*="bg-white"]:hover,
+.dark a[class*="bg-slate-50"]:hover {
+  background-color: #1e2c45 !important;
+  color: #f8fafc !important;
 }
 
-/* Dropdown & Popovers */
+/* 9. Modern Shadows */
+.dark .shadow-sm,
+.dark .shadow-md,
 .dark .shadow-lg,
-.dark .shadow-xl,
-.dark .shadow-2xl {
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6) !important;
+.dark .shadow-xl {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.5) !important;
 }
