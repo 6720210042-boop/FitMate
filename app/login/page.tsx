@@ -31,12 +31,8 @@ export default function LoginPage() {
       let matchedName = normalizedEmail.split("@")[0];
       let isAuthenticated = false;
 
-      // 1. ตรวจสอบกรณีใช้บัญชี Demo
-      if (normalizedEmail === "demo@fitmate.app" && password === "12345678") {
-        matchedName = "Demo User";
-        isAuthenticated = true;
-      } else if (typeof window !== "undefined") {
-        // 2. ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ
+      if (typeof window !== "undefined") {
+        // ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ
         let accounts: Array<{ name: string; email: string; password: string }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
@@ -60,7 +56,7 @@ export default function LoginPage() {
           isAuthenticated = true;
         } else {
           setIsLoading(false);
-          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิก หรือกด 'ใช้บัญชีทดสอบ'");
+          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิกใหม่");
           return;
         }
       }
@@ -84,12 +80,6 @@ export default function LoginPage() {
         }, 1000);
       }
     }, 600);
-  };
-
-  const fillDemo = () => {
-    setErrorMessage("");
-    setEmail("demo@fitmate.app");
-    setPassword("12345678");
   };
 
   return (
@@ -230,13 +220,6 @@ export default function LoginPage() {
               />
               <span className="text-xs text-zinc-600">จดจำฉันไว้ในระบบ</span>
             </label>
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="text-xs text-zinc-500 hover:text-zinc-800 underline decoration-dotted"
-            >
-              ทดลองด้วย Demo
-            </button>
           </div>
 
           <button
