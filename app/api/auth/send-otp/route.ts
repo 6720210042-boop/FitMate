@@ -106,6 +106,7 @@ export async function POST(request: Request) {
     });
 
     console.log(`[FitMate Mailer] Successfully sent real OTP email to: ${normalizedEmail}`);
+    console.log(`[FitMate Mailer OTP]: ${otp} sent to ${normalizedEmail}`);
 
     return NextResponse.json({
       success: true,
