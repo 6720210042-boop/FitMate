@@ -43,6 +43,31 @@ export default function LoginPage() {
           accounts = [];
         }
 
+        // หากเป็นเบราว์เซอร์ใหม่ ให้สร้างบัญชีแอดมินเริ่มต้นไว้ให้ทันที
+        if (accounts.length === 0) {
+          accounts = [
+            {
+              name: "Pathomphon Buanieo",
+              email: "pathomphon7n@gmail.com",
+              password: "password123",
+              role: "admin",
+              status: "active",
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+            } as any,
+            {
+              name: "FitMate Super Admin",
+              email: "admin@fitmate.app",
+              password: "admin1234",
+              role: "admin",
+              status: "active",
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+            } as any,
+          ];
+          localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
+        }
+
         const found = accounts.find((a) => a.email === normalizedEmail) as any;
         if (found) {
           if (found.status === "suspended") {

@@ -69,6 +69,17 @@ export default function ForgotPasswordPage() {
         accounts = [];
       }
 
+      if (accounts.length === 0) {
+        accounts = [
+          {
+            name: "Pathomphon Buanieo",
+            email: "pathomphon7n@gmail.com",
+            password: "password123",
+          },
+        ];
+        localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
+      }
+
       const found = accounts.find((a) => a.email === normalizedEmail);
       if (!found) {
         setErrorMessage("ไม่พบบัญชีที่ใช้อีเมลนี้ในระบบ กรุณาตรวจสอบอีเมลหรือสมัครสมาชิกใหม่");
@@ -204,6 +215,17 @@ export default function ForgotPasswordPage() {
           if (stored) accounts = JSON.parse(stored);
         } catch {
           accounts = [];
+        }
+
+        if (accounts.length === 0) {
+          accounts = [
+            {
+              name: "Pathomphon Buanieo",
+              email: "pathomphon7n@gmail.com",
+              password: "password123",
+            },
+          ];
+          localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
         }
 
         const accountIndex = accounts.findIndex((a) => a.email === normalizedEmail);
