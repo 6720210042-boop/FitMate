@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import LiveWorkoutTrainer from "./LiveWorkoutTrainer";
 import ExerciseDemoView from "./ExerciseDemoView";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface AssessmentData {
   gender: "male" | "female";
@@ -1371,6 +1372,9 @@ export default function DashboardPage() {
               </svg>
               <span className="hidden sm:inline">Admin</span>
             </Link>
+
+            {/* ปุ่มสลับธีม สว่าง / มืด */}
+            <ThemeToggle />
 
             <button
               type="button"

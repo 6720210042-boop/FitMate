@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface UserProfile {
   name: string;
@@ -56,6 +57,8 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
+
             {(user || hasAssessment) && (
               <Link
                 href="/dashboard"

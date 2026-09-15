@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -136,16 +137,16 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-zinc-900 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-      {/* แสงเอฟเฟกต์พื้นหลังโทนสว่าง */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100/70 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-teal-100/60 rounded-full blur-3xl pointer-events-none" />
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-zinc-900 dark:text-slate-100 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden transition-colors duration-200">
+      {/* แสงเอฟเฟกต์พื้นหลัง */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100/70 dark:bg-emerald-900/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-72 h-72 bg-teal-100/60 dark:bg-teal-900/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* แถบย้อนกลับหน้าแรก */}
       <div className="w-full max-w-md mb-4 flex items-center justify-between z-10">
         <Link
           href="/"
-          className="inline-flex items-center text-xs text-zinc-500 hover:text-emerald-600 transition gap-1.5 font-medium"
+          className="inline-flex items-center text-xs text-zinc-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition gap-1.5 font-medium"
         >
           <svg
             className="w-4 h-4"
@@ -162,21 +163,24 @@ export default function LoginPage() {
           </svg>
           กลับหน้าหลัก
         </Link>
-        <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-          FitMate Member
-        </span>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+            FitMate Member
+          </span>
+        </div>
       </div>
 
-      {/* กล่องการ์ดเข้าสู่ระบบโทนสว่าง สะอาดตา */}
-      <div className="w-full max-w-md bg-white border border-zinc-200/80 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 backdrop-blur-xl relative z-10">
+      {/* กล่องการ์ดเข้าสู่ระบบ */}
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 dark:shadow-slate-950/60 backdrop-blur-xl relative z-10">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-xl shadow-md shadow-emerald-500/20 mb-2">
             FM
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            เข้าสู่ระบบ <span className="text-emerald-600">FitMate</span>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            เข้าสู่ระบบ <span className="text-emerald-600 dark:text-emerald-400">FitMate</span>
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-slate-400 mt-1">
             ก้าวต่อไปสู่เป้าหมายสุขภาพและรูปร่างที่ดีขึ้น
           </p>
         </div>
@@ -223,7 +227,7 @@ export default function LoginPage() {
         {/* ฟอร์มกรอกข้อมูล */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
               อีเมล
             </label>
             <input
@@ -232,19 +236,19 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="กรอกอีเมลของคุณ"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
               autoComplete="email"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider">
                 รหัสผ่าน
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium transition hover:underline"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium transition"
               >
                 ลืมรหัสผ่าน?
               </Link>
@@ -256,7 +260,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="กรอกรหัสผ่านของคุณ"
-                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
                 autoComplete="current-password"
               />
               <button

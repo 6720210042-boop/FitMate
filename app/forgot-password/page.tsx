@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -259,37 +260,40 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-zinc-900 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-zinc-900 dark:text-slate-100 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden transition-colors duration-200">
       {/* แสงเอฟเฟกต์พื้นหลัง */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100/70 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-teal-100/60 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100/70 dark:bg-emerald-900/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-72 h-72 bg-teal-100/60 dark:bg-teal-900/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* แถบย้อนกลับ */}
       <div className="w-full max-w-md mb-4 flex items-center justify-between z-10">
         <Link
           href="/login"
-          className="inline-flex items-center text-xs text-zinc-500 hover:text-emerald-600 transition gap-1.5 font-medium"
+          className="inline-flex items-center text-xs text-zinc-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition gap-1.5 font-medium"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           กลับหน้าเข้าสู่ระบบ
         </Link>
-        <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-          ความปลอดภัยบัญชี
-        </span>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+            ความปลอดภัยบัญชี
+          </span>
+        </div>
       </div>
 
       {/* กล่องการ์ดรีเซ็ตรหัสผ่าน */}
-      <div className="w-full max-w-md bg-white border border-zinc-200/80 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 backdrop-blur-xl relative z-10">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 dark:shadow-slate-950/60 backdrop-blur-xl relative z-10">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-xl shadow-md shadow-emerald-500/20 mb-2">
             FM
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            รีเซ็ตรหัสผ่าน <span className="text-emerald-600">FitMate</span>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+            รีเซ็ตรหัสผ่าน <span className="text-emerald-600 dark:text-emerald-400">FitMate</span>
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-slate-400 mt-1">
             {step === 1 && "กรอกอีเมลของคุณเพื่อรับรหัสยืนยันความปลอดภัย"}
             {step === 2 && "กรอกรหัสยืนยัน OTP 6 หลักที่ได้รับในกล่องข้อความอีเมล"}
             {step === 3 && "กำหนดรหัสผ่านใหม่สำหรับเข้าสู่ระบบ"}

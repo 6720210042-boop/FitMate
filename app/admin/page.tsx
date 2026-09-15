@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface UserAccount {
   name: string;
@@ -315,6 +316,8 @@ export default function AdminDashboardPage() {
             <span className="text-slate-300">เข้าสู่ระบบโดย:</span>
             <strong className="text-emerald-300">{currentUser?.email || "adminchin@fitmate.app"}</strong>
           </div>
+
+          <ThemeToggle />
 
           <Link
             href="/dashboard"
