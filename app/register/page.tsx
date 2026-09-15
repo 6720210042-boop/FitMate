@@ -13,6 +13,9 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -22,9 +25,18 @@ export default function RegisterPage() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    // ตรวจสอบความถูกต้อง
-    if (!name || !email || !password) {
-      setErrorMessage("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน");
+    const trimmedName = name.trim();
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ตรวจสอบความถูกต้องของข้อมูล
+    if (!trimmedName || !normalizedEmail || !password) {
+      setErrorMessage("กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      setErrorMessage("รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
       return;
     }
 
@@ -43,7 +55,6 @@ export default function RegisterPage() {
     setTimeout(() => {
       // ตรวจสอบและบันทึกข้อมูลบัญชีลงใน localStorage (fitmate_accounts)
       if (typeof window !== "undefined") {
-        const normalizedEmail = email.toLowerCase().trim();
         let accounts: Array<{ name: string; email: string; password: string }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
@@ -60,15 +71,15 @@ export default function RegisterPage() {
         }
 
         accounts.push({
-          name: name.trim(),
+          name: trimmedName,
           email: normalizedEmail,
           password,
         });
         localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
 
-        // ตั้งค่าผู้ใช้ที่กำลังล็อกอินอยู่
+        // ตั้งค่า Session ผู้ใช้ที่กำลังล็อกอินอยู่
         const userProfile = {
-          name: name.trim(),
+          name: trimmedName,
           email: normalizedEmail,
           loggedIn: true,
         };
@@ -76,12 +87,14 @@ export default function RegisterPage() {
       }
 
       setIsLoading(false);
-      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังนำท่านไปทำแบบประเมินสุขภาพ...");
+      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังเข้าสู่ระบบและนำท่านไปเริ่มต้นใช้งาน...");
 
       setTimeout(() => {
-        router.push("/assessment");
-      }, 1200);
-    }, 600);
+        const hasAssessment =
+          typeof window !== "undefined" && !!localStorage.getItem("fitmate_assessment");
+        router.push(hasAssessment ? "/dashboard" : "/assessment");
+      }, 1000);
+    }, 500);
   };
 
   return (
@@ -137,7 +150,7 @@ export default function RegisterPage() {
         </div>
 
         {errorMessage && (
-          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+          <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
             <svg
               className="w-4 h-4 shrink-0 text-red-500"
               fill="none"
@@ -156,7 +169,7 @@ export default function RegisterPage() {
         )}
 
         {successMessage && (
-          <div className="mb-5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+          <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
             <svg
               className="w-4 h-4 shrink-0 text-emerald-600"
               fill="none"
@@ -184,7 +197,7 @@ export default function RegisterPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="เช่น ชิน, บาส, ท็อป"
+              placeholder="กรอกชื่อของคุณ หรือชื่อเล่น"
               className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
             />
           </div>
@@ -198,7 +211,7 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="กรอกอีเมลของคุณ"
               className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
             />
           </div>
@@ -207,28 +220,66 @@ export default function RegisterPage() {
             <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
               รหัสผ่าน (อย่างน้อย 6 ตัวอักษร) *
             </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="กรอกรหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition p-1"
+                title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+              >
+                {showPassword ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1.5">
               ยืนยันรหัสผ่าน *
             </label>
-            <input
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="กรอกยืนยันรหัสผ่านอีกครั้ง"
+                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition p-1"
+                title={showConfirmPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+              >
+                {showConfirmPassword ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           <button

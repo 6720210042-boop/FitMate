@@ -8,6 +8,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -17,22 +18,23 @@ export default function LoginPage() {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
-    setIsLoading(true);
+
+    const normalizedEmail = email.toLowerCase().trim();
 
     // ตรวจสอบข้อมูลเบื้องต้น
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       setErrorMessage("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน");
-      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+
     setTimeout(() => {
-      const normalizedEmail = email.toLowerCase().trim();
       let matchedName = normalizedEmail.split("@")[0];
       let isAuthenticated = false;
 
       if (typeof window !== "undefined") {
-        // ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ
+        // ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ (fitmate_accounts)
         let accounts: Array<{ name: string; email: string; password: string }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
@@ -51,12 +53,9 @@ export default function LoginPage() {
             setErrorMessage("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
             return;
           }
-        } else if (accounts.length === 0) {
-          // หากยังไม่มีการบันทึกบัญชีใดๆ ในเครื่อง ให้เข้าสู่ระบบได้เพื่อความสะดวก
-          isAuthenticated = true;
         } else {
           setIsLoading(false);
-          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิกใหม่");
+          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิกใหม่ก่อนเข้าใช้งาน");
           return;
         }
       }
@@ -79,7 +78,7 @@ export default function LoginPage() {
           router.push(hasAssessment ? "/dashboard" : "/assessment");
         }, 1000);
       }
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -109,29 +108,28 @@ export default function LoginPage() {
           </svg>
           กลับหน้าหลัก
         </Link>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+        <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
           FitMate Member
         </span>
       </div>
 
-      {/* กล่องการ์ดล็อกอินโทนสว่าง */}
-      <div className="w-full max-w-md bg-white border border-zinc-200/80 rounded-2xl p-8 shadow-xl shadow-zinc-200/50 backdrop-blur-xl relative z-10">
-        {/* หัวข้อและโลโก้ */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-2xl shadow-lg shadow-emerald-500/20 mb-3">
+      {/* กล่องการ์ดเข้าสู่ระบบโทนสว่าง สะอาดตา */}
+      <div className="w-full max-w-md bg-white border border-zinc-200/80 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 backdrop-blur-xl relative z-10">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-xl shadow-md shadow-emerald-500/20 mb-2">
             FM
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
             เข้าสู่ระบบ <span className="text-emerald-600">FitMate</span>
           </h1>
-          <p className="text-sm text-zinc-500 mt-1.5">
+          <p className="text-xs sm:text-sm text-zinc-500 mt-1">
             ก้าวต่อไปสู่เป้าหมายสุขภาพและรูปร่างที่ดีขึ้น
           </p>
         </div>
 
-        {/* กล่องแจ้งเตือนสถานะ */}
+        {/* ข้อความแจ้งเตือนข้อผิดพลาด */}
         {errorMessage && (
-          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+          <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
             <svg
               className="w-4 h-4 shrink-0 text-red-500"
               fill="none"
@@ -150,7 +148,7 @@ export default function LoginPage() {
         )}
 
         {successMessage && (
-          <div className="mb-5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+          <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
             <svg
               className="w-4 h-4 shrink-0 text-emerald-600"
               fill="none"
@@ -176,6 +174,7 @@ export default function LoginPage() {
             </label>
             <input
               type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="กรอกอีเมลของคุณ"
@@ -200,14 +199,34 @@ export default function LoginPage() {
                 ลืมรหัสผ่าน?
               </a>
             </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="กรอกรหัสผ่านของคุณ"
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="กรอกรหัสผ่านของคุณ"
+                className="w-full pl-4 pr-11 py-2.5 rounded-xl bg-zinc-50 border border-zinc-200 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition p-1"
+                title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+              >
+                {showPassword ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between pt-1">
@@ -257,7 +276,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* ตัวเลือกลงทะเบียน */}
         <div className="mt-6 pt-6 border-t border-zinc-100 text-center">
           <p className="text-xs text-zinc-500">
             ยังไม่มีบัญชี FitMate?{" "}

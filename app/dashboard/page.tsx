@@ -330,6 +330,17 @@ export default function DashboardPage() {
     }
   };
 
+  // ออกจากระบบ
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?");
+      if (confirmed) {
+        localStorage.removeItem("fitmate_user");
+        window.location.href = "/login";
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-zinc-600 text-sm">
@@ -1378,6 +1389,18 @@ export default function DashboardPage() {
               title="ล้างข้อมูลแผนเพื่อเริ่มใหม่"
             >
               รีเซ็ต
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-2.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-600 hover:text-red-600 text-xs font-semibold transition flex items-center gap-1 shadow-sm"
+              title="ออกจากระบบ"
+            >
+              <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="hidden sm:inline">ออกจากระบบ</span>
             </button>
           </div>
         </div>
