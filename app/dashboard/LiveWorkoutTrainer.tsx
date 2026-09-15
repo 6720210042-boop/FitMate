@@ -9,6 +9,7 @@ import {
   getExerciseCriteria,
 } from "./poseAnalyzer";
 import { workoutAudio } from "./workoutAudio";
+import ExerciseDemoView from "./ExerciseDemoView";
 
 export interface ExerciseItem {
   name: string;
@@ -121,6 +122,8 @@ export default function LiveWorkoutTrainer({
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  // หน้าต่างสาธิตท่าเคลื่อนไหวเคียงข้างกล้อง (Side-by-side Demo PiP)
+  const [showDemoPiP, setShowDemoPiP] = useState(true);
 
   // ควบคุมกล้องและการรองรับมือถือ (Mobile Camera & Device Optimization)
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -582,7 +585,7 @@ export default function LiveWorkoutTrainer({
       setFeedback((prev) => ({
         ...prev,
         feedbackStatus: "correct",
-        message: "🎉 ถูกต้องยอดเยี่ยม! นับ 1 ครั้ง",
+        message: "ถูกต้องยอดเยี่ยม! นับ 1 ครั้ง",
         subMessage: "ฟอร์มสวยมาก ทำต่อไปให้ครบเซ็ต",
         progressPercent: 100,
         isRepIncremented: true,
@@ -600,7 +603,7 @@ export default function LiveWorkoutTrainer({
       setFeedback((prev) => ({
         ...prev,
         feedbackStatus: "warning",
-        message: "⚠️ ยังทำไม่ถึงเกณฑ์! กรุณาทำใหม่",
+        message: "ยังทำไม่ถึงเกณฑ์! กรุณาทำใหม่",
         subMessage: prev.criteria.instructions,
         progressPercent: 55,
         isRepIncremented: false,
@@ -652,8 +655,9 @@ export default function LiveWorkoutTrainer({
                 : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
             }`}
           >
-            <span>✋ มือและแขน:</span>
-            <span>{feedback.bodyVisibility.handsVisible ? "🟢 ตรวจพบ" : "🔴 หลุดเฟรม"}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${feedback.bodyVisibility.handsVisible ? "bg-emerald-400" : "bg-rose-400"}`} />
+            <span>มือและแขน:</span>
+            <span>{feedback.bodyVisibility.handsVisible ? "ตรวจพบ" : "หลุดเฟรม"}</span>
           </div>
 
           {/* ขาและเท้า */}
@@ -664,8 +668,9 @@ export default function LiveWorkoutTrainer({
                 : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
             }`}
           >
-            <span>🦶 ขาและเท้า:</span>
-            <span>{feedback.bodyVisibility.feetVisible ? "🟢 ตรวจพบ" : "🔴 หลุดเฟรม"}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${feedback.bodyVisibility.feetVisible ? "bg-emerald-400" : "bg-rose-400"}`} />
+            <span>ขาและเท้า:</span>
+            <span>{feedback.bodyVisibility.feetVisible ? "ตรวจพบ" : "หลุดเฟรม"}</span>
           </div>
         </div>
 
@@ -702,6 +707,26 @@ export default function LiveWorkoutTrainer({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               </svg>
             )}
+          </button>
+
+          {/* ปุ่มเปิด/ปิด ตัวอย่างท่าสาธิตข้างกล้อง (Demo PiP Toggle) */}
+          <button
+            type="button"
+            onClick={() => setShowDemoPiP(!showDemoPiP)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+              showDemoPiP
+                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white"
+            }`}
+            title="เปิด/ปิด จอตัวอย่างท่าสาธิตข้างกล้อง"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span className="hidden sm:inline">
+              {showDemoPiP ? "ซ่อนตัวอย่างท่า" : "ดูตัวอย่างท่าสาธิต"}
+            </span>
           </button>
 
           {/* สลับท่าด้วยตนเอง (Manual Skip) */}
@@ -873,7 +898,7 @@ export default function LiveWorkoutTrainer({
               </h4>
             </div>
             <div className="text-xs font-bold text-white">
-              🎯 จุดผ่าน: <span className="text-emerald-400">{feedback.criteria.primaryTargetText}</span>{" "}
+              จุดผ่านเกณฑ์: <span className="text-emerald-400">{feedback.criteria.primaryTargetText}</span>{" "}
               &bull; คืนตัว: <span className="text-teal-300">{feedback.criteria.returnTargetText}</span>
             </div>
             <div className="text-[11px] text-zinc-400 leading-tight">
@@ -954,6 +979,17 @@ export default function LiveWorkoutTrainer({
             )}
           </div>
         </div>
+
+        {/* หน้าต่างภาพเคลื่อนไหวสาธิตท่าคู่กับกล้อง (Side-by-side Live Demo PiP) */}
+        {showDemoPiP && currentExercise && (
+          <div className="absolute bottom-28 right-4 sm:right-6 z-30 max-w-[280px] animate-in fade-in slide-in-from-right-4 duration-200">
+            <ExerciseDemoView
+              exerciseName={currentExercise.name}
+              isCompactPiP={true}
+              onClose={() => setShowDemoPiP(false)}
+            />
+          </div>
+        )}
 
         {/* ==============================================================
             COUNTDOWN OVERLAY: เตรียมตัว 3 วินาทีก่อนเริ่มเซ็ต

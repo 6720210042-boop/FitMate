@@ -41,23 +41,47 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     setTimeout(() => {
-      setIsLoading(false);
-      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังนำท่านไปทำแบบประเมินสุขภาพ...");
-
-      // บันทึกข้อมูลบัญชีลงใน localStorage
+      // ตรวจสอบและบันทึกข้อมูลบัญชีลงใน localStorage (fitmate_accounts)
       if (typeof window !== "undefined") {
+        const normalizedEmail = email.toLowerCase().trim();
+        let accounts: Array<{ name: string; email: string; password: string }> = [];
+        try {
+          const stored = localStorage.getItem("fitmate_accounts");
+          if (stored) accounts = JSON.parse(stored);
+        } catch {
+          accounts = [];
+        }
+
+        const existing = accounts.find((a) => a.email === normalizedEmail);
+        if (existing) {
+          setIsLoading(false);
+          setErrorMessage("อีเมลนี้ถูกลงทะเบียนไว้แล้ว กรุณาเข้าสู่ระบบ");
+          return;
+        }
+
+        accounts.push({
+          name: name.trim(),
+          email: normalizedEmail,
+          password,
+        });
+        localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
+
+        // ตั้งค่าผู้ใช้ที่กำลังล็อกอินอยู่
         const userProfile = {
-          name,
-          email,
+          name: name.trim(),
+          email: normalizedEmail,
           loggedIn: true,
         };
         localStorage.setItem("fitmate_user", JSON.stringify(userProfile));
       }
 
+      setIsLoading(false);
+      setSuccessMessage("สมัครสมาชิกสำเร็จ! กำลังนำท่านไปทำแบบประเมินสุขภาพ...");
+
       setTimeout(() => {
         router.push("/assessment");
       }, 1200);
-    }, 800);
+    }, 600);
   };
 
   return (

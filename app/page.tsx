@@ -11,6 +11,7 @@ interface UserProfile {
 
 export default function Home() {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [hasAssessment, setHasAssessment] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -22,6 +23,10 @@ export default function Home() {
         } catch {
           // ignore
         }
+      }
+      const storedAssessment = localStorage.getItem("fitmate_assessment");
+      if (storedAssessment) {
+        queueMicrotask(() => setHasAssessment(true));
       }
     }
   }, []);
@@ -51,6 +56,18 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            {(user || hasAssessment) && (
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                แดชบอร์ดของฉัน
+              </Link>
+            )}
+
             <Link
               href="/assessment"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition"
@@ -132,15 +149,27 @@ export default function Home() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
           {!user ? (
             <>
-              <Link
-                href="/assessment"
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-95 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                เริ่มต้นใช้งานฟรี (ทำแบบประเมิน)
-              </Link>
+              {hasAssessment ? (
+                <Link
+                  href="/dashboard"
+                  className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-95 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  เปิดดู Dashboard แผนสุขภาพของคุณ
+                </Link>
+              ) : (
+                <Link
+                  href="/assessment"
+                  className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-95 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  เริ่มต้นใช้งานฟรี (ทำแบบประเมิน)
+                </Link>
+              )}
               <Link
                 href="/register"
                 className="px-6 py-3.5 rounded-xl bg-white border border-zinc-200 text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300 font-semibold text-sm sm:text-base shadow-sm transition"
@@ -220,6 +249,78 @@ export default function Home() {
             <p className="text-xs text-zinc-600 leading-relaxed">
               ไม่ว่าคุณจะฝึกที่บ้าน มีแค่ดัมเบลคู่เดียว หรือไปฟิตเนส ระบบจะจัดตารางที่เข้ากับอุปกรณ์และเวลาของคุณจริง
             </p>
+          </div>
+        </div>
+
+        {/* แถบจุดเด่นด้านความปลอดภัยและความหลากหลายในการใช้งานจริง */}
+        <div className="mt-14 w-full bg-gradient-to-br from-emerald-900 via-teal-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl text-left border border-emerald-800/40 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold mb-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Practical &amp; Safe System • ออกแบบเพื่อชีวิตจริง
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white mb-2">
+              ออกแบบโปรแกรมให้ปลอดภัย หลากหลาย และทำตามได้ต่อเนื่อง
+            </h2>
+            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-3xl mb-6">
+              FitMate ผสานหลักสรีรวิทยาและโภชนาการที่ปลอดภัย เข้ากับพฤติกรรมการใช้ชีวิตประจำวันจริง
+              ไม่ว่าคุณจะฝึกที่บ้าน มีเวลาจำกัด หรือต้องทานอาหารนอกบ้านเป็นหลัก
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-emerald-400/40 transition">
+                <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  โครงสร้างฝึก 3 ขั้นตอน
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Warm-up &bull; Main &bull; Cool-down
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  อบอุ่นข้อต่อก่อนฝึก เซ็ตหลักพร้อมข้อควรระวังฟอร์มท่า และยืดเหยียดคลายกล้ามเนื้อหลังฝึกเพื่อลดอาการเมื่อยล้า
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-teal-400/40 transition">
+                <div className="text-xs font-bold text-teal-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-400" />
+                  สลับท่าเซฟข้อต่ออัตโนมัติ
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Safe Injury Overrides
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  ระบบตรวจสอบอาการเจ็บเข่า หลัง ไหล่ ข้อมือ และสลับไปใช้ท่าที่ไร้แรงกระแทกทันที ป้องกันอาการบาดเจ็บซ้ำ
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-cyan-400/40 transition">
+                <div className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                  เมนูทางเลือกหลากหลาย
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Flexible Meal Alternatives
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  สลับเมนูได้ในแต่ละมื้อ ครอบคลุมทั้งอาหารตามสั่งที่สั่งแบบสุขภาพดีได้จริง และเมนูเตรียมเองง่ายๆ ไม่จำเจ
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-300/40 transition">
+                <div className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-300" />
+                  กรองสารก่อภูมิแพ้ 100%
+                </div>
+                <div className="text-xs font-semibold text-white mt-1.5">
+                  Zero-Allergy Hard Filter
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                  คัดกรองวัตถุดิบและอาหารที่แพ้ออกจากทุกมื้ออย่างเด็ดขาด พร้อมแนะนำแหล่งโปรตีนทางเลือกที่ปลอดภัยทดแทน
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

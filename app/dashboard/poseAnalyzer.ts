@@ -133,7 +133,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 95,
         instructions: "ยืนให้กล้องเห็นทั้งตัว ย่อสะโพกลงจนเกจแตะขีดเขียว แล้วดันตัวยืนตรง",
         focusMuscles: "ต้นขา สะโพก และก้น",
-        requiredLimbs: ["🦵 สะโพกและเข่า", "🦶 ปลายเท้า"],
+        requiredLimbs: ["สะโพกและเข่า", "ปลายเท้า"],
       };
     case "pushup":
       return {
@@ -144,7 +144,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 95,
         instructions: "ลดหน้าอกลงให้ข้อศอกงอ 90 องศา แล้วออกแรงดันแขนเหยียดตรง",
         focusMuscles: "หน้าอกและหลังแขน",
-        requiredLimbs: ["✋ แขนและข้อศอก", "👤 ลำตัว"],
+        requiredLimbs: ["แขนและข้อศอก", "ลำตัว"],
       };
     case "shoulder_press":
       return {
@@ -155,7 +155,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 155,
         instructions: "ดันมือและน้ำหนักขึ้นเหนือศีรษะจริง (ไม่ใช่แกว่งมือ) แล้วลดลงระดับไหล่",
         focusMuscles: "หัวไหล่และแขน",
-        requiredLimbs: ["✋ มือเหนือศีรษะ", "💪 ข้อศอกและไหล่"],
+        requiredLimbs: ["มือเหนือศีรษะ", "ข้อศอกและไหล่"],
       };
     case "lunge":
       return {
@@ -166,7 +166,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 95,
         instructions: "ก้าวขอย่อเข่าหน้าลงจนต้นขาขนานพื้น แล้วดันตัวกลับมายืนตรง",
         focusMuscles: "ต้นขา สะโพก และการทรงตัว",
-        requiredLimbs: ["🦵 ขาหน้าและเข่า", "🦶 เท้า"],
+        requiredLimbs: ["ขาหน้าและเข่า", "เท้า"],
       };
     case "glute_bridge":
       return {
@@ -177,7 +177,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 165,
         instructions: "นอนหงายชันเข่า ยกสะโพกขึ้นให้เป็นเส้นตรงกับลำตัวแล้วบีบก้น",
         focusMuscles: "ก้นและสะโพก",
-        requiredLimbs: ["🦵 สะโพก", "👤 ลำตัว"],
+        requiredLimbs: ["สะโพก", "ลำตัว"],
       };
     case "hold":
     default:
@@ -189,7 +189,7 @@ export function getExerciseCriteria(name: string): ExerciseCriteria {
         thresholdDegrees: 180,
         instructions: "จัดระเบียบร่างกายให้นิ่ง หายใจเข้าออกสม่ำเสมอจนกว่าจะครบเวลา",
         focusMuscles: "แกนกลางลำตัว",
-        requiredLimbs: ["👤 ลำตัวตรง", "✋ แขน"],
+        requiredLimbs: ["ลำตัวตรง", "แขน"],
       };
   }
 }
@@ -268,21 +268,21 @@ export class ExerciseTracker {
     if (this.category === "squat" || this.category === "lunge") {
       if (!lowerBodyInFrame) {
         isReadyForExercise = false;
-        missingLimbMessage = "⚠️ กล้องมองไม่เห็นช่วงล่าง! กรุณาถอยให้เห็นสะโพกและเข่า";
+        missingLimbMessage = "กล้องมองไม่เห็นขาและเท้า! กรุณาถอยหลังให้เห็นทั้งตัว (ยกมือจะไม่ถูกนับ)";
       }
     } else if (this.category === "shoulder_press") {
       if (!upperBodyInFrame || !handsVisible) {
         isReadyForExercise = false;
-        missingLimbMessage = "⚠️ กรุณาจัดกล้องให้เห็นแขนและมือชัดเจน เพื่อตรวจจับการยกขึ้นเหนือศีรษะ";
+        missingLimbMessage = "กรุณาจัดกล้องให้เห็นแขนและมือชัดเจน เพื่อตรวจจับการยกขึ้นเหนือศีรษะ";
       }
     } else if (this.category === "pushup") {
       if (!upperBodyInFrame && !lowerBodyInFrame) {
         isReadyForExercise = false;
-        missingLimbMessage = "⚠️ กรุณาจัดกล้องให้เห็นตำแหน่งการวิดพื้น";
+        missingLimbMessage = "กรุณาจัดกล้องให้เห็นตำแหน่งการวิดพื้น";
       }
     } else if (!isVis(nose, 0.3) && !upperBodyInFrame) {
       isReadyForExercise = false;
-      missingLimbMessage = "⚠️ กำลังค้นหาร่างกาย กรุณายืนให้อยู่ในเฟรมกล้อง";
+      missingLimbMessage = "กำลังค้นหาร่างกาย กรุณายืนให้อยู่ในเฟรมกล้อง";
     }
 
     return {
@@ -423,14 +423,14 @@ export class ExerciseTracker {
             // สำเร็จ!
             isRepIncremented = true;
             this.lastRepTime = now;
-            message = "🎉 สควอทถูกต้องยอดเยี่ยม! นับ 1 ครั้ง";
+            message = "สควอทถูกต้องยอดเยี่ยม! นับ 1 ครั้ง";
             subMessage = "ยอดเยี่ยมมาก! ดันตัวขึ้นสุดแล้วลุยครั้งต่อไป";
             status = "correct";
           } else {
             // ย่อไม่ลึกพอ
             isRepFailed = true;
             this.lastRepTime = now;
-            message = "⚠️ ยังย่อไม่ลึกพอ! กรุณาทำใหม่";
+            message = "ยังย่อไม่ลึกพอ! กรุณาทำใหม่";
             subMessage = `ย่อได้เพียง ${this.minAngleReached}° (เกณฑ์ต้องต่ำกว่า ${SQUAT_DEPTH_TARGET}°)`;
             status = "warning";
           }
@@ -522,13 +522,13 @@ export class ExerciseTracker {
           if (this.maxAngleReached >= TOP_TARGET - 10 && this.maxAngleReached > 0) {
             isRepIncremented = true;
             this.lastRepTime = now;
-            message = "🎉 ยกหัวไหล่ถูกต้อง! นับ 1 ครั้ง";
+            message = "ยกหัวไหล่ถูกต้อง! นับ 1 ครั้ง";
             subMessage = "ดีมาก! ลดมือลงเสมอไหล่แล้วยกครั้งต่อไป";
             status = "correct";
           } else {
             isRepFailed = true;
             this.lastRepTime = now;
-            message = "⚠️ ยกไม่สุดแขนเหนือศีรษะ! กรุณาทำใหม่";
+            message = "ยกไม่สุดแขนเหนือศีรษะ! กรุณาทำใหม่";
             subMessage = "ต้องดันมือขึ้นให้แขนเกือบเหยียดตรงเหนือศีรษะ";
             status = "warning";
           }
@@ -612,12 +612,12 @@ export class ExerciseTracker {
           if (this.minAngleReached <= DOWN_TARGET + 8) {
             isRepIncremented = true;
             this.lastRepTime = now;
-            message = "🎉 วิดพื้นถูกต้อง! นับ 1 ครั้ง";
+            message = "วิดพื้นถูกต้อง! นับ 1 ครั้ง";
             status = "correct";
           } else {
             isRepFailed = true;
             this.lastRepTime = now;
-            message = "⚠️ ลดหน้าอกไม่ลึกพอ! กรุณาทำใหม่";
+            message = "ลดหน้าอกไม่ลึกพอ! กรุณาทำใหม่";
             subMessage = "งอข้อศอกให้ลึกกว่านี้เพื่อให้กล้ามเนื้ออกทำงานเต็มที่";
             status = "warning";
           }
@@ -702,12 +702,12 @@ export class ExerciseTracker {
           if (this.maxAngleReached >= BRIDGE_TARGET - 8) {
             isRepIncremented = true;
             this.lastRepTime = now;
-            message = "🎉 ยกสะโพกถูกต้อง! นับ 1 ครั้ง";
+            message = "ยกสะโพกถูกต้อง! นับ 1 ครั้ง";
             status = "correct";
           } else {
             isRepFailed = true;
             this.lastRepTime = now;
-            message = "⚠️ ยกสะโพกขึ้นไม่สุด! กรุณาทำใหม่";
+            message = "ยกสะโพกขึ้นไม่สุด! กรุณาทำใหม่";
             status = "warning";
           }
         }
@@ -756,7 +756,7 @@ export class ExerciseTracker {
     if (elapsedSeconds >= this.holdDurationTargetSeconds) {
       isRepIncremented = true;
       this.holdStartTimestamp = now;
-      message = "🎉 ค้างท่าครบตามกำหนดแล้ว! นับ 1 เซ็ต/ครั้ง";
+      message = "ค้างท่าครบตามกำหนดแล้ว! นับ 1 เซ็ต/ครั้ง";
       subMessage = "ยอดเยี่ยมมาก! ผ่อนคลายกล้ามเนื้อได้";
       status = "correct";
     }

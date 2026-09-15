@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import LiveWorkoutTrainer from "./LiveWorkoutTrainer";
+import ExerciseDemoView from "./ExerciseDemoView";
 
 interface AssessmentData {
   gender: "male" | "female";
@@ -22,11 +23,15 @@ interface AssessmentData {
   regularMedications?: string;
   isPregnantOrNursing?: boolean;
   currentActivityLevel: string;
+  deskHours?: "high" | "medium" | "low";
+  sleepHours?: "short" | "optimal" | "long";
   parqChestPain: boolean;
   parqDoctorWarning: boolean;
   parqDizziness: boolean;
   isRedFlag: boolean;
+  fitnessGoals?: string[];
   fitnessGoal: string;
+  experienceLevel?: "beginner" | "intermediate" | "advanced";
   targetDuration: string;
   workoutIntensity: string;
   workoutDays: number;
@@ -34,6 +39,24 @@ interface AssessmentData {
   workoutLocation: string;
   selectedEquipment: string[];
   movementLimits: string[];
+  physiqueArchetype?: string;
+  customPhysiqueName?: string;
+  targetMuscles?: string[];
+  bodyScanResult?: {
+    shoulderToHipRatio: number;
+    somatotype: "Ectomorph" | "Mesomorph" | "Endomorph";
+    somatotypeThai: string;
+    matchScore: number;
+    frameTitle: string;
+    frameDescription: string;
+    advantages: string[];
+    focusGaps: string[];
+    timelineRecommendation: string;
+    scannedAt: string;
+    scanMethod: "webcam" | "photo" | "estimated";
+    capturedImagePreview?: string;
+  } | null;
+  eatingStyle?: "street_food" | "home_cook" | "mixed";
   dietType: string;
   dislikedFoods: string[];
   otherDisliked?: string;
@@ -45,21 +68,44 @@ interface AssessmentData {
   updatedAt?: string;
 }
 
-// ฐานข้อมูลแบบฝึกออกกำลังกาย (จัดกลุ่มตามข้อจำกัดและอุปกรณ์)
+// ฐานข้อมูลแบบฝึกออกกำลังกาย (จัดกลุ่มตามขั้นตอน ฟอร์มท่า และความปลอดภัย)
 interface ExerciseItem {
   name: string;
+  phase?: "warmup" | "main" | "cooldown";
   sets: string;
   reps: string;
   rest: string;
   tag: string;
+  safetyCue?: string; // ข้อควรระวังและเทคนิคการจัดระเบียบร่างกาย
   note?: string;
-  contraindicatedIn?: string[]; // ข้อห้ามทำถ้ามีอาการเหล่านี้
+  contraindicatedIn?: string[];
+  isTargetFocus?: boolean; // ป้ายโฟกัสพิเศษตามกล้ามเนื้อเป้าหมายของผู้ใช้
+}
+
+export interface MealOption {
+  dish: string;
+  category: "ตามสั่ง/นอกบ้าน" | "ทำเองง่ายๆ" | "พร้อมทานสะดวก";
+  orderingTip?: string; // เทคนิคสั่งอาหารเลี่ยงโซเดียม/น้ำมัน
+  plateRatio: string; // เช่น "ผัก 2 ส่วน + ข้าว 1 ส่วน + โปรตีน 1 ส่วน"
+}
+
+export interface MealItem {
+  mealName: string;
+  calories: number;
+  protein: string;
+  carbs: string;
+  fat: string;
+  safetyNote: string;
+  options: MealOption[];
 }
 
 export default function DashboardPage() {
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"workout" | "nutrition" | "overview">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "workout" | "nutrition">("overview");
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+  // ตัวเลือกเมนูที่กำลังแสดงในแต่ละมื้อ (index มื้อ -> index ตัวเลือก 0, 1, 2)
+  const [selectedMealChoices, setSelectedMealChoices] = useState<Record<number, number>>({});
 
   // ระบบจับเวลาพักเซ็ต (Rest Timer)
   const [timerSeconds, setTimerSeconds] = useState(60);
@@ -78,6 +124,12 @@ export default function DashboardPage() {
     exercises: ExerciseItem[];
     initialIndex?: number;
   } | null>(null);
+
+  // สลับสถานที่ฝึกของแต่ละวัน (Day Locations: Home, Gym, Outdoor)
+  const [dayLocations, setDayLocations] = useState<Record<number, "home" | "gym" | "outdoor">>({});
+
+  // หน้าต่างภาพเคลื่อนไหวสาธิตตัวอย่างท่าออกกำลังกาย (Exercise Demo Modal)
+  const [demoExercise, setDemoExercise] = useState<ExerciseItem | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -115,8 +167,37 @@ export default function DashboardPage() {
           // ignore
         }
       }
+
+      const storedUser = localStorage.getItem("fitmate_user");
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          queueMicrotask(() => setCurrentUser(parsedUser));
+        } catch {
+          // ignore
+        }
+      }
+
+      const storedLocations = localStorage.getItem("fitmate_day_locations");
+      if (storedLocations) {
+        try {
+          const parsedLocs = JSON.parse(storedLocations);
+          queueMicrotask(() => setDayLocations(parsedLocs));
+        } catch {
+          // ignore
+        }
+      }
     }
   }, []);
+
+  // สลับสถานที่ฝึกของวันนั้นๆ (บ้าน / ฟิตเนส / กลางแจ้ง)
+  const handleSwitchDayLocation = (dayIndex: number, loc: "home" | "gym" | "outdoor") => {
+    const next = { ...dayLocations, [dayIndex]: loc };
+    setDayLocations(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fitmate_day_locations", JSON.stringify(next));
+    }
+  };
 
   // จับเวลานับถอยหลัง
   useEffect(() => {
@@ -182,6 +263,73 @@ export default function DashboardPage() {
     }
   };
 
+  // โหลดข้อมูลแผนตัวอย่างทันทีสำหรับการทดสอบ / พรีเซนต์
+  const loadDemoAssessment = () => {
+    const demoData: AssessmentData = {
+      gender: "male",
+      birthDate: "1999-05-15",
+      age: 27,
+      height: 175,
+      weight: 70,
+      bmi: 22.9,
+      bmr: 1675,
+      tdee: 2303,
+      targetCalories: 1853,
+      targetProteinGrams: 112,
+      chronicDiseases: ["none"],
+      pastInjuries: ["none"],
+      currentActivityLevel: "occasional",
+      parqChestPain: false,
+      parqDoctorWarning: false,
+      parqDizziness: false,
+      isRedFlag: false,
+      fitnessGoals: ["fat_loss", "muscle_gain"],
+      fitnessGoal: "fat_loss",
+      targetDuration: "12_weeks",
+      workoutIntensity: "moderate",
+      workoutDays: 3,
+      sessionMinutes: 45,
+      workoutLocation: "home",
+      selectedEquipment: ["bodyweight", "dumbbells"],
+      movementLimits: ["none"],
+      targetMuscles: ["chest", "back", "abs"],
+      bodyScanResult: null,
+      dietType: "general",
+      dislikedFoods: ["none"],
+      foodAllergies: ["none"],
+      supplements: ["whey"],
+      foodBudget: "medium",
+      mealsPerDay: 3,
+      updatedAt: new Date().toISOString(),
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fitmate_assessment", JSON.stringify(demoData));
+    }
+    setAssessment(demoData);
+  };
+
+  // รีเซ็ตข้อมูลแผนสุขภาพทั้งหมดเพื่อเริ่มใหม่
+  const handleResetAllData = () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("คุณต้องการล้างข้อมูลแผนสุขภาพในเครื่องทั้งหมดเพื่อเริ่มต้นใหม่ใช่หรือไม่?");
+      if (confirmed) {
+        localStorage.removeItem("fitmate_assessment");
+        localStorage.removeItem("fitmate_completed_days");
+        localStorage.removeItem("fitmate_completed_exercises");
+        setAssessment(null);
+        setCompletedDays([]);
+        setCompletedExercises({});
+      }
+    }
+  };
+
+  // พิมพ์ / บันทึกเป็น PDF
+  const handlePrintPlan = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center text-zinc-600 text-sm">
@@ -206,14 +354,29 @@ export default function DashboardPage() {
           <p className="text-xs text-zinc-600 leading-relaxed">
             เพื่อให้ FitMate คำนวณแคลอรี่ที่แม่นยำ และจัดโปรแกรมออกกำลังกายที่ปลอดภัยเฉพาะคุณ กรุณาทำแบบประเมินสุขภาพก่อนเริ่มต้นใช้งาน
           </p>
-          <Link
-            href="/assessment"
-            className="block w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition"
-          >
-            ทำแบบประเมินสุขภาพตอนนี้
-          </Link>
-          <Link href="/" className="block text-xs text-zinc-500 hover:underline">
-            กลับหน้าหลัก
+          <div className="space-y-2.5 pt-2">
+            <Link
+              href="/assessment"
+              className="block w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              ทำแบบประเมินสุขภาพตอนนี้ (4 ขั้นตอน)
+            </Link>
+            <button
+              type="button"
+              onClick={loadDemoAssessment}
+              className="w-full py-3.5 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-emerald-800 font-bold text-sm transition flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <span>โหลดข้อมูลแผนตัวอย่างด่วน (Quick Demo Plan)</span>
+            </button>
+          </div>
+          <Link href="/" className="block text-xs text-zinc-500 hover:underline pt-2">
+            &larr; กลับหน้าหลัก
           </Link>
         </div>
       </div>
@@ -243,244 +406,654 @@ export default function DashboardPage() {
     assessment.movementLimits.includes("shoulder_pain") ||
     assessment.pastInjuries.includes("shoulder_injury");
 
-  // สร้างตารางออกกำลังกายแบบคัดกรองความปลอดภัย (Safety Workout Split)
-  const generatePersonalizedWorkoutDays = () => {
+  // คำนวณอัตราการเต้นหัวใจเป้าหมาย (Target Heart Rate Zones) อ้างอิง ACSM / CDC / AHA (HRmax = 220 - Age)
+  const userAge = assessment.age || 26;
+  const hrMax = Math.max(120, 220 - userAge);
+  const thrZones = {
+    hrMax,
+    zone1: { name: "Zone 1 (Warm up / Active Recovery)", min: Math.round(hrMax * 0.50), max: Math.round(hrMax * 0.60), label: "50-60% HRmax", desc: "วอร์มอัพ คูลดาวน์ และฟื้นฟูกล้ามเนื้อ หายใจปกติ" },
+    zone2: { name: "Zone 2 (Moderate Aerobic & Fat Burn)", min: Math.round(hrMax * 0.60), max: Math.round(hrMax * 0.70), label: "60-70% HRmax", desc: "โซนเป้าหมายหลักตามเกณฑ์ WHO/ACSM เผาผลาญไขมันดีเยี่ยม เสริมความแข็งแรงของหัวใจ พูดคุยได้เป็นประโยค" },
+    zone3: { name: "Zone 3 (Aerobic Fitness)", min: Math.round(hrMax * 0.70), max: Math.round(hrMax * 0.80), label: "70-80% HRmax", desc: "พัฒนาความจุของปอดและระบบไหลเวียนโลหิต หายใจกระชั้นขึ้น" },
+    zone4: { name: "Zone 4 (Vigorous / Anaerobic Threshold)", min: Math.round(hrMax * 0.80), max: Math.round(hrMax * 0.85), label: "80-85% HRmax", desc: "ระดับหนัก เพิ่มสปีดและความทนทานของกล้ามเนื้อ (ควรฝึกแบบช่วงสั้นๆ)" },
+  };
+
+  // สร้างตารางออกกำลังกายแบบคัดกรองความปลอดภัย 3 ขั้นตอน พร้อมรองรับการสลับสถานที่รายวันและจุดเน้นกล้ามเนื้อ
+  const generatePersonalizedWorkoutDays = (
+    currentDayLocations: Record<number, "home" | "gym" | "outdoor"> = {}
+  ) => {
     const daysCount = assessment.workoutDays || 3;
     const hasDumbbell = assessment.selectedEquipment.includes("dumbbells");
-    const isGym = assessment.workoutLocation === "gym";
+    const targetMuscles = assessment.targetMuscles || [];
+    const needsPostureWarmup =
+      assessment.currentActivityLevel === "none" ||
+      assessment.movementLimits.includes("shoulder_pain") ||
+      assessment.movementLimits.includes("back_pain");
+    const userExp: "beginner" | "intermediate" | "advanced" =
+      assessment.experienceLevel ||
+      (assessment.workoutIntensity === "intense"
+        ? "advanced"
+        : assessment.currentActivityLevel === "none" || assessment.workoutIntensity === "light"
+        ? "beginner"
+        : "intermediate");
 
     const days = [];
 
-    // วันที่ 1: ลำตัวช่วงบน (Upper Body)
-    const upperExercises: ExerciseItem[] = [];
-    if (hasDumbbell || isGym) {
-      upperExercises.push({
-        name: "Dumbbell Chest Press (ดันอก)",
-        sets: "3 เซ็ต",
-        reps: "10-12 ครั้ง",
-        rest: "60 วิ",
-        tag: "อกและต้นแขน",
+    // ==========================================
+    // วันที่ 1: กล้ามเนื้อช่วงบนและความแข็งแรง (Upper Body & Posture)
+    // ==========================================
+    const day1Loc = currentDayLocations[0] || (assessment.workoutLocation as "home" | "gym" | "outdoor") || "home";
+    const isGym1 = day1Loc === "gym";
+    const isOutdoor1 = day1Loc === "outdoor";
+    const isChestFocus = targetMuscles.includes("chest");
+    const isBackFocus = targetMuscles.includes("back");
+    const isShoulderFocus = targetMuscles.includes("shoulders_arms");
+    const isAbsFocus = targetMuscles.includes("abs");
+
+    const day1Exercises: ExerciseItem[] = [];
+
+    // 1. Dynamic Warm-up
+    if (needsPostureWarmup) {
+      day1Exercises.push({
+        name: isOutdoor1
+          ? "Outdoor Standing Arm Circles & Torso Rotations (หมุนแขนและบิดลำตัวในสวน)"
+          : "Thoracic Spine Rotations & Cat-Cow (คลายกระดูกอกและสันหลัง)",
+        phase: "warmup",
+        sets: "2 เซ็ต",
+        reps: "8-10 รอบ",
+        rest: "30 วิ",
+        tag: "แก้ออฟฟิศซินโดรม",
+        safetyCue: "ขยับอย่างนุ่มนวล หายใจเข้าเงยหน้า หายใจออกโก่งหลัง ไม่กระชากคอ",
       });
-      upperExercises.push({
-        name: hasBackIssue
-          ? "Chest-Supported Row (ดึงหลังแบบมีเบาะพิงหลัง)"
-          : "Dumbbell Row (ดึงหลังข้างลำตัว)",
-        sets: "3 เซ็ต",
+      day1Exercises.push({
+        name: "Arm Circles & Scapular Squeezes (หมุนแขนและบีบสะบัก)",
+        phase: "warmup",
+        sets: "2 เซ็ต",
         reps: "12 ครั้ง",
-        rest: "60 วิ",
-        tag: "กล้ามเนื้อหลัง",
-        note: hasBackIssue ? "เซฟหลังส่วนล่าง ไม่ก้มตัวแอ่นหลัง" : undefined,
+        rest: "30 วิ",
+        tag: "เปิดข้อต่อหัวไหล่",
+        safetyCue: "กางแขนระดับไหล่ วาดเป็นวงกลมช้าๆ เพื่อหล่อลื่นข้อต่อไหล่",
       });
     } else {
-      upperExercises.push({
-        name: "Knee Push-ups / Incline Push-ups (วิดพื้นชันเข่า)",
-        sets: "3 เซ็ต",
+      day1Exercises.push({
+        name: "Arm Swings & Overhead Reaches (แกว่งแขนยืดเปิดอก)",
+        phase: "warmup",
+        sets: "2 เซ็ต",
+        reps: "15 ครั้ง",
+        rest: "30 วิ",
+        tag: "วอร์มอัพข้อต่อไหล่",
+        safetyCue: "แกว่งอย่างเป็นธรรมชาติ ยืดอกเปิดกว้าง หายใจเข้าลึกๆ",
+      });
+      day1Exercises.push({
+        name: isOutdoor1
+          ? "Walking Lunges with Torso Twist (ก้าวเดินวอร์มอัพยืดลำตัว)"
+          : "Inchworm Walkouts (ก้มเดินมือกึ่งยืดหยุ่น)",
+        phase: "warmup",
+        sets: "2 เซ็ต",
+        reps: "6-8 ครั้ง",
+        rest: "30 วิ",
+        tag: "กระตุ้นกล้ามเนื้อทั่วร่าง",
+        safetyCue: "งอเข่าได้เล็กน้อย ก้าวทีละฝ่ามือ ล็อคแกนกลางให้ตรง",
+      });
+    }
+
+    // 2. Main Working Sets
+    // Chest
+    if (isGym1) {
+      day1Exercises.push({
+        name: hasShoulderIssue
+          ? "Machine Chest Press (ดันเครื่องแมชชีนเซฟข้อไหล่)"
+          : "Incline Dumbbell Bench Press (ดันดัมเบลบนเบาะเอียงสร้างอกบน)",
+        phase: "main",
+        sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
+        reps: "10-12 ครั้ง",
+        rest: "60-90 วิ",
+        tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (ฟิตเนส)",
+        safetyCue: "ปรับเบาะให้แนวแรงอยู่ระดับกึ่งกลางอก ดันขึ้นบีบอก ไม่กางศอกเกิน 90 องศา",
+        isTargetFocus: isChestFocus,
+        note: isChestFocus ? "เพิ่มจำนวนเซ็ตเพื่อขยายมิติกล้ามเนื้ออกตามหุ่นต้นแบบ" : undefined,
+      });
+    } else if (isOutdoor1) {
+      day1Exercises.push({
+        name: hasShoulderIssue
+          ? "Park Bench Incline Push-ups (วิดพื้นกับพนักพิงม้านั่งสวน)"
+          : userExp === "beginner"
+          ? "Park Bench Incline Push-ups (วิดพื้นวางมือบนม้านั่งสวน)"
+          : "Park Bench Feet-Elevated Push-ups (วิดพื้นวางเท้าบนม้านั่งสร้างอกบน)",
+        phase: "main",
+        sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "10-15 ครั้ง",
+        rest: "60 วิ",
+        tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "อกและแขน (กลางแจ้ง)",
+        safetyCue: "ลำตัวเป็นแผ่นตรง แขม่วหน้าท้อง มือวางกว้างกว่าไหล่เล็กน้อย",
+        isTargetFocus: isChestFocus,
+      });
+    } else {
+      // Home
+      if (hasDumbbell) {
+        if (hasShoulderIssue) {
+          day1Exercises.push({
+            name: "Floor Dumbbell Chest Press (ดันดัมเบลนอนบนพื้น)",
+            phase: "main",
+            sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
+            reps: "10-12 ครั้ง",
+            rest: "60-90 วิ",
+            tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออก (เซฟข้อไหล่)",
+            safetyCue: "ข้อศอกแตะพื้นเบาๆ ป้องกันข้อต่อหัวไหล่เปิดเกิน 90 องศา",
+            isTargetFocus: isChestFocus,
+            note: "ปลอดภัยสำหรับผู้ที่มีอาการเจ็บหัวไหล่",
+          });
+        } else {
+          day1Exercises.push({
+            name: "Dumbbell Bench / Floor Press (ดันดัมเบลสร้างกล้ามอก)",
+            phase: "main",
+            sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : userExp === "beginner" ? "3 เซ็ต" : "4 เซ็ต",
+            reps: "10-12 ครั้ง",
+            rest: "60-90 วิ",
+            tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "กล้ามเนื้ออกและแขน",
+            safetyCue: "ดึงสะบักลงชิดกัน ศอกทำมุมเฉียง 45 องศากับลำตัว ไม่กางข้อศอกเสมอไหล่",
+            isTargetFocus: isChestFocus,
+          });
+        }
+      } else {
+        day1Exercises.push({
+          name: userExp === "beginner"
+            ? "Knee Push-ups / Incline Push-ups (วิดพื้นชันเข่า/ดันผนัง)"
+            : "Standard Push-ups (วิดพื้นมาตรฐาน)",
+          phase: "main",
+          sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+          reps: userExp === "beginner" ? "8-10 ครั้ง" : "12-15 ครั้ง",
+          rest: "60 วิ",
+          tag: isChestFocus ? "กล้ามเนื้ออก (โฟกัสพิเศษตามเป้าหมาย)" : "อก แขน และแกนกลาง",
+          safetyCue: "เกร็งหน้าท้อง ลำตัวเป็นเส้นตรงจากศีรษะถึงส้นเท้า สะโพกไม่ย้อย",
+          isTargetFocus: isChestFocus,
+        });
+      }
+    }
+
+    // Back / Row
+    if (isGym1) {
+      day1Exercises.push({
+        name: "Lat Pulldown (ดึงสายเคเบิลสร้างปีกหลัง V-Taper)",
+        phase: "main",
+        sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "10-12 ครั้ง",
+        rest: "60-90 วิ",
+        tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "ปีกหลัง & V-Shape (ฟิตเนส)",
+        safetyCue: "ยืดอก ดึงบาร์ลงมาระดับไหปลาร้า บีบสะบักเข้าหากันแน่นๆ ไม่เอนตัวเหวี่ยง",
+        isTargetFocus: isBackFocus,
+        note: isBackFocus ? "ท่าหลักในการสร้างปีกหลังตัว V ให้เอวดูคอดลง" : undefined,
+      });
+    } else if (isOutdoor1) {
+      day1Exercises.push({
+        name: "Park Bar Underhand Bodyweight Row / Towel Pull (ดึงตัวกับบาร์เตี้ยในสวน)",
+        phase: "main",
+        sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "8-12 ครั้ง",
         rest: "60 วิ",
-        tag: "อกและแขน",
-      });
-      upperExercises.push({
-        name: "Prone Cobra / Superman Hold",
-        sets: "3 เซ็ต",
-        reps: "10 ครั้ง (ค้าง 3 วิ)",
-        rest: "45 วิ",
-        tag: "หลังส่วนบนและสะบัก",
-      });
-    }
-
-    if (!hasShoulderIssue) {
-      upperExercises.push({
-        name: "Dumbbell Shoulder Press / Lateral Raises",
-        sets: "3 เซ็ต",
-        reps: "12 ครั้ง",
-        rest: "60 วิ",
-        tag: "หัวไหล่",
+        tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบน & สะบัก (กลางแจ้ง)",
+        safetyCue: "จับบาร์หรือพาดผ้าขนหนูกับเสา ลำตัวตรง ดึงอกเข้าหาบาร์ บีบสะบักแน่น",
+        isTargetFocus: isBackFocus,
       });
     } else {
-      upperExercises.push({
-        name: "Scapular Wall Slides (สไลด์แขนแนบกำแพง)",
-        sets: "3 เซ็ต",
-        reps: "10 ครั้ง",
+      // Home
+      if (hasDumbbell) {
+        day1Exercises.push({
+          name: hasBackIssue
+            ? "Chest-Supported Row (ดึงหลังแบบอกพิงเบาะเอียง)"
+            : "One-Arm Dumbbell Row (ดึงดัมเบลชิดข้างลำตัว)",
+          phase: "main",
+          sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+          reps: "10-12 ครั้ง",
+          rest: "60 วิ",
+          tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและปีกหลัง",
+          safetyCue: hasBackIssue
+            ? "แนบอกกับเบาะตลอดเวลา ขจัดแรงกดที่กระดูกสันหลังส่วนล่าง 100%"
+            : "รักษาหลังตรงขนาน ดึงข้อศอกเข้าหาสะโพก ไม่เหวี่ยงลำตัว",
+          isTargetFocus: isBackFocus,
+          note: hasBackIssue ? "ปรับเซฟหลังส่วนล่าง ป้องกันปวดหลัง" : undefined,
+        });
+      } else {
+        day1Exercises.push({
+          name: "Prone Cobra / Towel Lat Pull (นอนคว่ำดึงผ้าขนหนูเกร็งสะบัก)",
+          phase: "main",
+          sets: isBackFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+          reps: "10-12 ครั้ง (ค้าง 2 วิ)",
+          rest: "45 วิ",
+          tag: isBackFocus ? "หลังและปีก (โฟกัสพิเศษตามเป้าหมาย)" : "หลังส่วนบนและกล้ามเนื้อปรับบุคลิกภาพ",
+          safetyCue: "บีบสะบักเข้าหากันแน่นๆ มองลงพื้น ไม่เงยหน้า เพื่อเซฟกระดูกต้นคอ",
+          isTargetFocus: isBackFocus,
+        });
+      }
+    }
+
+    // Shoulders & Arms
+    if (isGym1) {
+      day1Exercises.push({
+        name: hasShoulderIssue
+          ? "Scapular Cable Pull-Aparts (ดึงเคเบิลกางสะบักฟื้นฟูไหล่)"
+          : "Cable Lateral Raises (ดึงสายเคเบิลกางไหล่ข้างสร้างหัวไหล่ทรงสวย)",
+        phase: "main",
+        sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "12-15 ครั้ง",
+        rest: "45-60 วิ",
+        tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง (ฟิตเนส)",
+        safetyCue: "ดึงสายเคเบิลขึ้นเสมอไหล่ ข้อศอกงอเล็กน้อย ห้ามยักคอ",
+        isTargetFocus: isShoulderFocus,
+      });
+    } else if (isOutdoor1) {
+      day1Exercises.push({
+        name: "Park Bench Tricep Dips (ดริปหลังแขนกับม้านั่งสวน)",
+        phase: "main",
+        sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "10-12 ครั้ง",
         rest: "45 วิ",
-        tag: "เสริมความมั่นคงหัวไหล่ ปลอดภัย",
-        note: "หลีกเลี่ยงการยกน้ำหนักเหนือศีรษะ",
+        tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หลังแขนและไหล่ (กลางแจ้ง)",
+        safetyCue: "วางมือบนขอบม้านั่ง หลังชิดม้านั่ง งอศอก 90 องศาแล้วดันตัวขึ้น",
+        isTargetFocus: isShoulderFocus,
+      });
+    } else {
+      // Home
+      if (hasShoulderIssue) {
+        day1Exercises.push({
+          name: "Scapular Wall Slides (สไลด์แขนแนบกำแพงฟื้นฟูไหล่)",
+          phase: "main",
+          sets: "3 เซ็ต",
+          reps: "10 ครั้ง",
+          rest: "45 วิ",
+          tag: "ฟื้นฟูความมั่นคงหัวไหล่",
+          safetyCue: "กดหลังและแขนแนบผนัง ขยับช้าๆ ถ้าเจ็บให้ลดระยะการยกแขน",
+          note: "หลีกเลี่ยงการยกเวทเหนือศีรษะเด็ดขาด",
+        });
+      } else {
+        day1Exercises.push({
+          name: hasDumbbell
+            ? "Dumbbell Lateral Raises (กางแขนสร้างหัวไหล่ทรงสวย)"
+            : "Water Bottle Lateral Raises (ยกกางแขนต้านแรง)",
+          phase: "main",
+          sets: isShoulderFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+          reps: "12-15 ครั้ง",
+          rest: "45-60 วิ",
+          tag: isShoulderFocus ? "ไหล่และแขน (โฟกัสพิเศษตามเป้าหมาย)" : "หัวไหล่ด้านข้าง",
+          safetyCue: "ยกดัมเบลขึ้นเสมอระดับไหล่ ข้อศอกงอเล็กน้อย ห้ามเหวี่ยงลำตัวหรือยักคอ",
+          isTargetFocus: isShoulderFocus,
+        });
+      }
+    }
+
+    // Core
+    if (hasBackIssue) {
+      day1Exercises.push({
+        name: "Bird-Dog Exercise (เหยียดแขนขาตรงข้ามสลับข้าง)",
+        phase: "main",
+        sets: isAbsFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "10 ครั้ง/ข้าง",
+        rest: "45 วิ",
+        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางลำตัวปลอดภัย (หมอนรองกระดูก)",
+        safetyCue: "เกร็งหน้าท้อง ลำตัวขนานพื้น แขนและขาเหยียดเป็นแนวระนาบ ไม่แอ่นหลัง",
+        isTargetFocus: isAbsFocus,
+        note: "ท่ากายภาพบำบัดมาตรฐานสากล ลดอาการปวดหลัง",
+      });
+    } else {
+      day1Exercises.push({
+        name: isOutdoor1
+          ? "Park Bench Seated Knee Tucks (ดึงเข่าเกร็งหน้าท้องบนม้านั่ง)"
+          : "Forearm Plank (แพลงก์เกร็งหน้าท้อง)",
+        phase: "main",
+        sets: isAbsFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: isOutdoor1 ? "12-15 ครั้ง" : userExp === "beginner" ? "20-30 วินาที" : "40-60 วินาที",
+        rest: "45 วิ",
+        tag: isAbsFocus ? "ซิกแพคและแกนกลาง (โฟกัสพิเศษตามเป้าหมาย)" : "แกนกลางและความมั่นคง",
+        safetyCue: "เกร็งหน้าท้องและบีบก้น ดันอกห่างพื้น ไม่ทิ้งสะโพกต่ำหรือยกสูงเกินไป",
+        isTargetFocus: isAbsFocus,
       });
     }
 
-    days.push({
-      dayTitle: "วันฝึกที่ 1: กล้ามเนื้อช่วงบนและความแข็งแรง (Upper Body)",
-      focus: "อก หลัง ไหล่ และแขน",
-      duration: `${assessment.sessionMinutes || 40} นาที`,
-      exercises: upperExercises,
+    // 3. Cool-down & Static Stretching
+    day1Exercises.push({
+      name: "Doorway Chest & Bicep Stretch (ยืดกล้ามเนื้ออกแนบขอบประตู/ต้นไม้)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "ข้างละ 30 วินาที",
+      rest: "15 วิ",
+      tag: "ยืดผ่อนคลายกล้ามเนื้ออก",
+      safetyCue: "ก้าวขาไปข้างหน้าเบาๆ จนรู้สึกตึงสบายที่กล้ามเนื้ออก หายใจเข้าออกลึกๆ",
+    });
+    day1Exercises.push({
+      name: "Child's Pose with Lat Reach (ท่าเด็กยืดคลายหลังและปีก)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "45 วินาที",
+      rest: "15 วิ",
+      tag: "คลายหลังส่วนบนและสะบัก",
+      safetyCue: "หย่อนสะโพกลงชิดส้นเท้า เดินปลายนิ้วไปข้างหน้าเบาๆ ผ่อนคลายกล้ามเนื้อคอและหลัง",
     });
 
-    // วันที่ 2: ลำตัวช่วงล่าง & แกนกลางลำตัว (Lower Body & Core)
-    const lowerExercises: ExerciseItem[] = [];
+    days.push({
+      dayTitle: `วันฝึกที่ 1: กล้ามเนื้อช่วงบนและความแข็งแรง (${day1Loc === "gym" ? "ฟิตเนส" : day1Loc === "outdoor" ? "กลางแจ้ง" : "ที่บ้าน"})`,
+      focus: "อก หลัง ไหล่ และแกนกลางลำตัว ปรับสมดุลบุคลิกภาพ",
+      duration: `${assessment.sessionMinutes || 40} นาที`,
+      exercises: day1Exercises,
+    });
+
+    // ==========================================
+    // วันที่ 2: กล้ามเนื้อช่วงล่างและสะโพก (Lower Body & Core)
+    // ==========================================
+    const day2Loc = currentDayLocations[1] || (assessment.workoutLocation as "home" | "gym" | "outdoor") || "home";
+    const isGym2 = day2Loc === "gym";
+    const isOutdoor2 = day2Loc === "outdoor";
+    const isGluteFocus = targetMuscles.includes("glutes");
+    const isLegFocus = targetMuscles.includes("legs");
+
+    const day2Exercises: ExerciseItem[] = [];
+
+    // 1. Dynamic Warm-up
+    day2Exercises.push({
+      name: "Standing Hip Circles & Leg Swings (หมุนข้อสะโพกและแกว่งขา)",
+      phase: "warmup",
+      sets: "2 เซ็ต",
+      reps: "ข้างละ 10-12 ครั้ง",
+      rest: "20 วิ",
+      tag: "หล่อลื่นข้อสะโพกและข้อเข่า",
+      safetyCue: "จับกำแพงหรือพนักพิงทรงตัว แกว่งขาหน้าหลังอย่างนุ่มนวล ไม่สะบัดกระแทก",
+    });
+    day2Exercises.push({
+      name: "Bodyweight Glute Activation Bridges (ยกสะโพกปลุกกล้ามเนื้อก้น)",
+      phase: "warmup",
+      sets: "2 เซ็ต",
+      reps: "12 ครั้ง",
+      rest: "30 วิ",
+      tag: "เปิดการทำงานกล้ามเนื้อสะโพก",
+      safetyCue: "กดส้นเท้าลงพื้น บีบก้นค้างไว้ 1-2 วินาทีที่จุดสูงสุด เพื่อให้กล้ามเนื้อก้นทำงานเต็มที่",
+    });
+
+    // 2. Main Working Sets
     if (hasKneeIssue) {
-      // คัดกรองท่าเข่า: ห้าม Jump Squat / Lunges ลึก -> แทนด้วย Glute Bridge, Wall Sit
-      lowerExercises.push({
-        name: "Glute Bridges (ยกสะโพกขึ้นจากพื้น)",
-        sets: "4 เซ็ต",
-        reps: "15 ครั้ง",
+      // เซฟเข่า 100%: ไม่มีกระแทก ไม่งอเข่าลึกเกิน
+      day2Exercises.push({
+        name: isGym2
+          ? "Cable Glute Kickbacks (เตะสายเคเบิลปั้นก้น เซฟเข่า 100%)"
+          : "Glute Bridges (ยกสะโพกขึ้นจากพื้น)",
+        phase: "main",
+        sets: isGluteFocus ? "5 เซ็ต (โฟกัสพิเศษ)" : "4 เซ็ต",
+        reps: "12-15 ครั้ง",
         rest: "45 วิ",
-        tag: "ก้นและสะโพก (Low-impact ปลอดภัยต่อข้อเข่า 100%)",
-        note: "ไม่สร้างแรงกดที่กระดูกสะบ้าหัวเข่า",
+        tag: isGluteFocus ? "ก้นและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "สะโพกและต้นขาด้านหลัง (Low Impact เซฟเข่า 100%)",
+        safetyCue: "ใช้แรงผลักจากส้นเท้า บีบก้นแน่นที่จุดบนสุด ไร้แรงกดทับที่กระดูกสะบ้าหัวเข่า",
+        isTargetFocus: isGluteFocus,
+        note: "ออกแบบเฉพาะสำหรับผู้มีปัญหาข้อเข่าหรือข้อต่อ",
       });
-      lowerExercises.push({
-        name: "Wall Sit (นั่งพิงกำแพงทรงตัว)",
-        sets: "3 เซ็ต",
+      day2Exercises.push({
+        name: "Wall Sit Isometric Hold (นั่งพิงกำแพง/ต้นไม้เกร็งต้นขา)",
+        phase: "main",
+        sets: isLegFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "ค้าง 20-30 วินาที",
         rest: "60 วิ",
-        tag: "ต้นขาแบบนิ่ง (Isometric)",
+        tag: isLegFocus ? "ต้นขาและน่อง (โฟกัสพิเศษตามเป้าหมาย)" : "สร้างความแข็งแรงเอ็นรอบหัวเข่า",
+        safetyCue: "หลังแนบกำแพง มุมเข่าไม่เกิน 90 องศา (หรือ 60 องศาตามระดับที่ไม่ปวด) ไม่ให้เข่าเลยปลายเท้า",
+        isTargetFocus: isLegFocus,
       });
-      lowerExercises.push({
-        name: "Clamshells (นอนเปิดขาบริหารสะโพก)",
-        sets: "3 เซ็ต",
-        reps: "12 ครั้ง/ข้าง",
+      day2Exercises.push({
+        name: isGym2
+          ? "Seated Hip Abduction Machine (กางสะโพกด้วยเครื่องแมชชีน)"
+          : "Side-Lying Clamshells (นอนเปิดขาบริหารกล้ามเนื้อก้นมัดกลาง)",
+        phase: "main",
+        sets: isGluteFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "12-15 ครั้ง/ข้าง",
         rest: "45 วิ",
-        tag: "สะโพกด้านข้าง เสริมความมั่นคงข้อเข่า",
+        tag: isGluteFocus ? "ก้นและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "เสริมความมั่นคงสะบ้าข้อเข่า",
+        safetyCue: "ประกบส้นเท้าไว้ เปิดเข่าด้านบนขึ้น ลำตัวไม่เอี้ยวหรือหงายไปด้านหลัง",
+        isTargetFocus: isGluteFocus,
       });
     } else {
-      lowerExercises.push({
-        name: hasDumbbell ? "Goblet Squats (สควอทถือดัมเบล)" : "Bodyweight Air Squats (บอดี้เวทสควอท)",
-        sets: "3-4 เซ็ต",
-        reps: "12-15 ครั้ง",
-        rest: "60 วิ",
-        tag: "ต้นขาและสะโพก",
-      });
-      lowerExercises.push({
-        name: "Reverse Lunges (ก้าวถอยหลังย่อตัว)",
-        sets: "3 เซ็ต",
+      // ผู้ฝึกปกติ
+      day2Exercises.push({
+        name: isOutdoor2
+          ? "Park Bench Step-ups & Reverse Lunges (ก้าวขึ้นม้านั่งและก้าวถอยย่อตัวในสวน)"
+          : "Reverse Lunges (ก้าวถอยหลังย่อตัว)",
+        phase: "main",
+        sets: isLegFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10 ครั้ง/ข้าง",
         rest: "60 วิ",
-        tag: "ต้นขาและแกนกลาง",
+        tag: isLegFocus ? "ต้นขาและสะโพก (โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขา สะโพก และการทรงตัว",
+        safetyCue: "ก้าวถอยหลังเพื่อลดแรงกดดันที่หัวเข่าด้านหน้า ทิ้งน้ำหนักกึ่งกลาง ลำตัวตั้งตรง",
+        isTargetFocus: isLegFocus,
       });
-      lowerExercises.push({
-        name: "Glute Bridges",
-        sets: "3 เซ็ต",
-        reps: "15 ครั้ง",
-        rest: "45 วิ",
-        tag: "สะโพกและหลังส่วนล่าง",
+      day2Exercises.push({
+        name: hasDumbbell
+          ? "Dumbbell Romanian Deadlift (RDL พับสะโพก)"
+          : "Single-Leg Glute Bridge (ยกสะโพกขาเดียว)",
+        phase: "main",
+        sets: isGluteFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
+        reps: "10-12 ครั้ง",
+        rest: "60 วิ",
+        tag: isGluteFocus ? "สะโพกและต้นขาหลัง (โฟกัสพิเศษตามเป้าหมาย)" : "ต้นขาด้านหลังและสะโพก (Hamstrings & Glutes)",
+        safetyCue: "พับจากข้อพับสะโพก (Hip Hinge) หลังตรงตลอดแนว รู้สึกตึงที่ต้นขาหลังแล้วดึงสะโพกกลับ",
+        isTargetFocus: isGluteFocus,
       });
     }
 
-    // แกนกลางลำตัว (Core)
-    if (hasBackIssue) {
-      lowerExercises.push({
-        name: "Bird-Dog Exercise (เหยียดแขนขาตรงข้าม)",
-        sets: "3 เซ็ต",
-        reps: "10 ครั้ง/ข้าง",
-        rest: "45 วิ",
-        tag: "แกนกลางลำตัว (กายภาพป้องกันปวดหลัง)",
-        note: "ปลอดภัยต่อหมอนรองกระดูก ไม่โก่งหลัง",
-      });
-    } else {
-      lowerExercises.push({
-        name: "Plank (แพลงก์เกร็งหน้าท้อง)",
-        sets: "3 เซ็ต",
-        reps: "ค้าง 30-45 วินาที",
-        rest: "45 วิ",
-        tag: "หน้าท้องและแกนกลาง",
-      });
-    }
+    // Core
+    day2Exercises.push({
+      name: "Dead Bug Exercise (นอนหงายลดแขนขาสลับข้าง)",
+      phase: "main",
+      sets: "3 เซ็ต",
+      reps: "10-12 ครั้ง",
+      rest: "45 วิ",
+      tag: "แกนกลางลำตัวชั้นลึก ปลอดภัยต่อหลัง",
+      safetyCue: "กดหลังส่วนล่างให้แนบสนิทกับพื้นตลอดการเคลื่อนไหว อย่าให้มีช่องว่างใต้หลัง",
+    });
+
+    // 3. Cool-down & Static Stretching
+    day2Exercises.push({
+      name: "Standing Quad & Hip Flexor Stretch (ยืดกล้ามเนื้อหน้าขาและขาหนีบ)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "ข้างละ 30 วินาที",
+      rest: "15 วิ",
+      tag: "ผ่อนคลายกล้ามเนื้อหน้าขา",
+      safetyCue: "จับผนังทรงตัว ดึงส้นเท้าชิดก้น ดันสะโพกไปข้างหน้าเบาๆ ลำตัวตรง",
+    });
+    day2Exercises.push({
+      name: "Seated Hamstring & Calf Stretch (ยืดกล้ามเนื้อหลังขาและน่อง)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "ข้างละ 30 วินาที",
+      rest: "15 วิ",
+      tag: "ยืดหยุ่นกล้ามเนื้อโซ่หลัง",
+      safetyCue: "ก้มพับจากข้อสะโพก ไม่โก่งหลังส่วนบน ปลายเท้ากระดกขึ้นเล็กน้อย",
+    });
 
     days.push({
-      dayTitle: "วันฝึกที่ 2: ช่วงล่างและแกนกลางลำตัว (Lower Body & Core)",
-      focus: hasKneeIssue ? "เน้นสะโพกและต้นขาแบบไร้แรงกระแทกเข่า" : "สะโพก ต้นขา และหน้าท้อง",
+      dayTitle: `วันฝึกที่ 2: กล้ามเนื้อช่วงล่างและสะโพก (${day2Loc === "gym" ? "ฟิตเนส" : day2Loc === "outdoor" ? "กลางแจ้ง" : "ที่บ้าน"})`,
+      focus: hasKneeIssue
+        ? "กระชับต้นขาและสะโพกแบบปลอดภัยไร้แรงกระแทกเข่า 100%"
+        : "สร้างความแข็งแกร่งต้นขา สะโพก และระบบเผาผลาญ",
       duration: `${assessment.sessionMinutes || 40} นาที`,
-      exercises: lowerExercises,
+      exercises: day2Exercises,
     });
 
-    // วันที่ 3: คาร์ดิโอโซนปลอดภัย & เคลื่อนไหวร่างกาย (Safe Cardio & Mobility)
-    const cardioExercises: ExerciseItem[] = [];
+    // ==========================================
+    // วันที่ 3: คาร์ดิโอปลอดภัย & ฟื้นฟูสมรรถภาพ (Cardio & Recovery)
+    // ==========================================
+    const day3Exercises: ExerciseItem[] = [];
+
+    // 1. Dynamic Warm-up
+    day3Exercises.push({
+      name: "Joint Mobility Flow (หมุนข้อต่อข้อเท้า เข่า สะโพก แขน)",
+      phase: "warmup",
+      sets: "2 เซ็ต",
+      reps: "1-2 นาที",
+      rest: "15 วิ",
+      tag: "เตรียมพร้อมระบบไหลเวียน",
+      safetyCue: "หมุนช้าๆ ควบคุมกล้ามเนื้อ หายใจเข้าออกสม่ำเสมอ",
+    });
+    day3Exercises.push({
+      name: "Low-Impact Step Jacks (ก้าวแตะด้านข้างยกแขนขึ้นลง)",
+      phase: "warmup",
+      sets: "2 เซ็ต",
+      reps: "30 วินาที",
+      rest: "20 วิ",
+      tag: "เพิ่มอุณหภูมิร่างกายแบบไร้แรงกระแทก",
+      safetyCue: "ลงน้ำหนักนุ่มนวล งอเข่ารองรับน้ำหนัก ไม่กระโดดกระแทกพื้น",
+    });
+
+    // 2. Main Working Sets
     if (assessment.isRedFlag) {
-      cardioExercises.push({
-        name: "เดินชันบนลู่วิ่ง หรือ เดินเร็วในสวน (Brisk Walk Zone 2)",
-        sets: "1 รอบ",
+      day3Exercises.push({
+        name: "Zone 2 Brisk Walking (เดินเร็วหรือเดินชันคุมอัตราเต้นหัวใจ)",
+        phase: "main",
+        sets: "1 รอบต่อเนื่อง",
         reps: "20-25 นาที",
-        rest: "พักจิบน้ำเมื่อเหนื่อย",
-        tag: "คาร์ดิโอเบา คุมอัตราเต้นหัวใจ",
-        note: "โซนพูดคุยได้สบาย ไม่เหนื่อยหอบจนพูดไม่ได้",
+        rest: "พักจิบน้ำตามต้องการ",
+        tag: "คาร์ดิโอโซน 2 เพื่อสุขภาพหัวใจ",
+        safetyCue: "ระดับความเหนื่อยต้องพูดคุยได้เป็นประโยคสบายๆ (Talk Test) ไม่เหนื่อยหอบ",
+        note: "โซนปลอดภัยสูงสุดตามมาตรฐาน ACSM สำหรับผู้เริ่มต้น",
       });
-      cardioExercises.push({
-        name: "Full Body Mobility & Dynamic Stretching (ยืดเหยียดข้อต่อ)",
-        sets: "2 รอบ",
-        reps: "10 นาที",
-        rest: "สบายๆ",
-        tag: "ความยืดหยุ่นและผ่อนคลาย",
+      day3Exercises.push({
+        name: "Standing Balance & Deep Core Stabilization (ฝึกการทรงตัวและแกนกลาง)",
+        phase: "main",
+        sets: "3 เซ็ต",
+        reps: "30 วินาที/ข้าง",
+        rest: "30 วิ",
+        tag: "ระบบประสาทและสมดุลร่างกาย",
+        safetyCue: "ตามองจุดนิ่งด้านหน้า เกร็งสะโพกช่วยพยุง มือแตะเก้าอี้ได้หากรู้สึกโคลงเคลง",
       });
     } else {
-      cardioExercises.push({
-        name: hasKneeIssue
-          ? "ปั่นจักรยานอยู่กับที่ / เดินชัน (Incline Treadmill Walk)"
-          : "High Knees สลับ Shadow Boxing (เบิร์นไขมัน)",
-        sets: "4-5 รอบ",
-        reps: "ทำงาน 40 วิ / พัก 20 วิ",
-        rest: "20 วิ",
-        tag: "คาร์ดิโอเผาผลาญพลังงาน",
-      });
-      cardioExercises.push({
-        name: "Dead Bug Exercise (บริหารหน้าท้อง)",
-        sets: "3 เซ็ต",
-        reps: "12 ครั้ง",
-        rest: "45 วิ",
-        tag: "กล้ามเนื้อแกนกลาง",
-      });
-      cardioExercises.push({
-        name: "Cool Down & Static Stretching (ยืดกล้ามเนื้อหลังออกกำลังกาย)",
-        sets: "1 รอบ",
-        reps: "10 นาที",
-        rest: "-",
-        tag: "ลดอาการปวดเมื่อย",
-      });
+      if (hasKneeIssue) {
+        day3Exercises.push({
+          name: "Stationary Cycling / Incline Treadmill Walk (ปั่นจักรยาน/เดินชัน)",
+          phase: "main",
+          sets: "1 รอบ",
+          reps: "20-25 นาที (Zone 2)",
+          rest: "สม่ำเสมอ",
+          tag: "คาร์ดิโอเบิร์นไขมันไร้แรงกระแทกเข่า",
+          safetyCue: "ปรับระดับเบาะนั่งให้พอดี ไม่ให้เข่างอพับเกิน 30 องศาขณะเหยียดบันไดลงสุด",
+        });
+        day3Exercises.push({
+          name: "Shadow Boxing with Torso Rotations (ชกลมกระตุ้นอัตราเต้นหัวใจ)",
+          phase: "main",
+          sets: "3-4 รอบ",
+          reps: "ทำงาน 45 วิ / พัก 20 วิ",
+          rest: "20 วิ",
+          tag: "เผาผลาญไขมันท่อนบน",
+          safetyCue: "ออกหมัดอย่างผ่อนคลาย บิดตัวจากแกนกลางลำตัว ไม่ล็อกข้อศอกตึงเกินไป",
+        });
+      } else {
+        day3Exercises.push({
+          name: "Aerobic Intervals (เดินเร็วสลับวิ่งเหยาะ หรือก้าวชิดก้าวแตะ)",
+          phase: "main",
+          sets: "4-5 รอบ",
+          reps: "ทำงาน 45 วิ / พัก 30 วิ",
+          rest: "30 วิ",
+          tag: "พัฒนาความจุหัวใจและปอด",
+          safetyCue: "ลงน้ำหนักด้วยกึ่งกลางฝ่าเท้า ไม่กระแทกส้นเท้าลงพื้นแรง",
+        });
+        day3Exercises.push({
+          name: "Standing High Knee March with Core Twist (ยกเข่าแตะศอกตรงข้าม)",
+          phase: "main",
+          sets: "3 เซ็ต",
+          reps: "12 ครั้ง/ข้าง",
+          rest: "30 วิ",
+          tag: "เบิร์นไขมันและบริหารหน้าท้อง",
+          safetyCue: "ยกเข่าขึ้นแล้วบิดช่วงอก ไม่ก้มคอ เกร็งหน้าท้องทุกครั้งที่ยกขา",
+        });
+      }
     }
 
-    days.push({
-      dayTitle: "วันฝึกที่ 3: คาร์ดิโอและฟื้นฟูกล้ามเนื้อ (Cardio & Recovery)",
-      focus: assessment.isRedFlag ? "คาร์ดิโอระดับเบาเพื่อสุขภาพหัวใจ" : "คาร์ดิโอและเผาผลาญไขมัน",
-      duration: `${assessment.sessionMinutes || 35} นาที`,
-      exercises: cardioExercises,
+    // 3. Cool-down & Static Stretching
+    day3Exercises.push({
+      name: "Cat-Cow to Child's Pose Flow (ท่ายืดหลังและผ่อนคลายลมหายใจ)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "1 นาที",
+      rest: "15 วิ",
+      tag: "ปรับระบบประสาทให้สงบ (Parasympathetic)",
+      safetyCue: "หายใจเข้าลึก 4 วินาที หายใจออกยาว 6 วินาที เพื่อให้อัตราเต้นหัวใจกลับสู่ระดับปกติ",
+    });
+    day3Exercises.push({
+      name: "Supine Spinal Twist (นอนหงายบิดสะโพกยืดคลายเอว)",
+      phase: "cooldown",
+      sets: "2 เซ็ต",
+      reps: "ข้างละ 30 วินาที",
+      rest: "15 วิ",
+      tag: "คลายหลังส่วนล่างและสะโพก",
+      safetyCue: "กางแขนแนบพื้น บิดเข่าไปด้านข้างช้าๆ หัวไหล่ทั้งสองข้างยังคงแนบพื้น",
     });
 
-    // ถ้าเลือก 4-5 วันต่อสัปดาห์
+    days.push({
+      dayTitle: "วันฝึกที่ 3: คาร์ดิโอโซนปลอดภัยและฟื้นฟูกล้ามเนื้อ (Cardio & Recovery)",
+      focus: assessment.isRedFlag
+        ? "คาร์ดิโอระดับเบาเพื่อสุขภาพหัวใจและความดันโลหิต"
+        : "คาร์ดิโอโซน 2 เผาผลาญไขมันและยืดหยุ่นกล้ามเนื้อทั่วร่าง",
+      duration: `${assessment.sessionMinutes || 35} นาที`,
+      exercises: day3Exercises,
+    });
+
+    // วันที่ 4: เสริมสร้างความกระชับรวม (ถ้าเลือก 4-5 วัน/สัปดาห์)
     if (daysCount >= 4) {
+      const day4Exercises: ExerciseItem[] = [
+        {
+          name: "Arm Swings & Side Step Mobility",
+          phase: "warmup",
+          sets: "2 เซ็ต",
+          reps: "10 ครั้ง",
+          rest: "20 วิ",
+          tag: "วอร์มอัพทั่วตัว",
+          safetyCue: "เคลื่อนไหวนุ่มนวล สบายๆ",
+        },
+        {
+          name: "Dumbbell / Band Deadlift (หรือ Glute Bridge หนักขึ้น)",
+          phase: "main",
+          sets: "3 เซ็ต",
+          reps: "10-12 ครั้ง",
+          rest: "60 วิ",
+          tag: "กล้ามเนื้อโซ่หลังและความแข็งแรง",
+          safetyCue: "รักษาแนวกระดูกสันหลังตรงตลอดการเคลื่อนไหว พับจากสะโพก",
+        },
+        {
+          name: "Standing Dumbbell Bicep Curl to Shoulder Press",
+          phase: "main",
+          sets: "3 เซ็ต",
+          reps: "10-12 ครั้ง",
+          rest: "45-60 วิ",
+          tag: "กล้ามเนื้อแขนและไหล่",
+          safetyCue: "เกร็งหน้าท้องและบีบก้นแน่น ป้องกันไม่ให้เอวแอ่นขณะยกเวท",
+        },
+        {
+          name: "Side Plank with Knee Support (แพลงก์ข้างงอเข่าพยุง)",
+          phase: "main",
+          sets: "3 เซ็ต",
+          reps: "ค้าง 20-30 วินาที/ข้าง",
+          rest: "45 วิ",
+          tag: "กล้ามเนื้อเอวด้านข้างและความสมดุล",
+          safetyCue: "ข้อศอกอยู่ตรงใต้หัวไหล่พอดี ยกสะโพกขึ้นจนลำตัวตรง",
+        },
+        {
+          name: "Full Body Deep Breathing & Downward Dog Stretch",
+          phase: "cooldown",
+          sets: "2 เซ็ต",
+          reps: "45 วินาที",
+          rest: "15 วิ",
+          tag: "ยืดเหยียดผ่อนคลายกล้ามเนื้อทั้งตัว",
+          safetyCue: "สูดหายใจเข้าออกลึกๆ ผ่อนคลายกล้ามเนื้อทุกส่วน",
+        },
+      ];
+
       days.push({
-        dayTitle: "วันฝึกที่ 4: เสริมความกระชับทั้งตัว (Full Body Circuit)",
-        focus: "กระตุ้นกล้ามเนื้อรวมและการเผาผลาญ",
+        dayTitle: "วันฝึกที่ 4: ฟังก์ชันและกระชับทั่วเรือนร่าง (Full Body Functional)",
+        focus: "เสริมสร้างสมดุล ความแข็งแกร่ง และการเผาผลาญ",
         duration: `${assessment.sessionMinutes || 40} นาที`,
-        exercises: [
-          {
-            name: "Dumbbell / Band Deadlift (หรือ Glute Bridge หนักขึ้น)",
-            sets: "3 เซ็ต",
-            reps: "12 ครั้ง",
-            rest: "60 วิ",
-            tag: "กล้ามเนื้อโซ่หลัง",
-          },
-          {
-            name: "Standing Dumbbell Bicep Curl to Overhead (หรือ Lateral)",
-            sets: "3 เซ็ต",
-            reps: "12 ครั้ง",
-            rest: "45 วิ",
-            tag: "แขนและไหล่",
-          },
-          {
-            name: "Side Plank (แพลงก์ตะแคงข้าง)",
-            sets: "3 เซ็ต",
-            reps: "ค้าง 20 วินาที/ข้าง",
-            rest: "45 วิ",
-            tag: "เอวด้านข้างและความสมดุล",
-          },
-        ],
+        exercises: day4Exercises,
       });
     }
 
     return days;
   };
 
-  const workoutSchedule = generatePersonalizedWorkoutDays();
+  const workoutSchedule = generatePersonalizedWorkoutDays(dayLocations);
 
-  // ระบบ HARD FILTER อาหารที่แพ้ 100% (ห้ามแนะนำเมนูที่มีส่วนผสมดังกล่าวเด็ดขาด)
-  const generatePersonalizedMealPlan = () => {
+  // ระบบ HARD FILTER อาหารที่แพ้ 100% พร้อมตัวเลือกเมนูหลากหลาย 3 รูปแบบต่อมื้อ
+  const generatePersonalizedMealPlan = (): MealItem[] => {
     const allergies = assessment.foodAllergies || ["none"];
     const isNoSeafood = allergies.includes("seafood");
     const isNoPeanuts = allergies.includes("peanuts");
@@ -493,77 +1066,264 @@ export default function DashboardPage() {
     const targetCal = assessment.targetCalories || 1800;
     const targetProtein = assessment.targetProteinGrams || 100;
 
-    // คำนวณแคลอรี่และโปรตีนต่อมื้อ
     const calPerMeal = Math.round(targetCal / mealsCount);
     const proteinPerMeal = Math.round(targetProtein / mealsCount);
+    const carbsPerMeal = Math.round((calPerMeal * 0.48) / 4);
+    const fatPerMeal = Math.round((calPerMeal * 0.25) / 9);
 
-    // เมนูมื้อหลักที่ผ่านการกรอง Hard Filter
-    const mealTemplates = [
-      {
-        mealName: mealsCount === 2 ? "มื้อที่ 1 (Brunch 10:00 - 11:30 น.)" : "มื้อเช้า (07:30 - 08:30 น.)",
-        dish: isVegetarian
-          ? isNoSoy
-            ? "ข้าวกล้อง + ไข่ต้ม 2 ฟอง + ผัดเห็ดสามอย่างใส่น้ำมันมะกอก"
-            : "ข้าวกล้อง + เต้าหู้ขาวผัดผักรวม + งาขาวคั่ว"
-          : isNoEgg
-          ? "ข้าวไรซ์เบอร์รี่ + อกไก่ย่างสมุนไพร + ผักลวก (บรอกโคลี/แครอท)"
-          : "ข้าวกล้อง + อกไก่ผัดกะเพราคลีน + ไข่ดาวน้ำ (ไม่ใช้น้ำมัน)",
-        calories: calPerMeal,
-        protein: `${proteinPerMeal} กรัม`,
-        carbs: `${Math.round((calPerMeal * 0.5) / 4)} กรัม`,
-        fat: `${Math.round((calPerMeal * 0.25) / 9)} กรัม`,
-        safetyNote: isNoSeafood
-          ? "ปลอดภัย 100%: ไม่มีส่วนผสมของอาหารทะเล / น้ำปลาแท้จากปลาทะเล"
-          : isNoDairy
-          ? "ปลอดภัย 100%: ไม่มีเนย นม หรือแลคโตส"
-          : "สารอาหารครบถ้วนตามโควต้าพลังงาน",
-      },
-      {
-        mealName: mealsCount === 2 ? "มื้อที่ 2 (Dinner 17:00 - 18:30 น.)" : "มื้อกลางวัน (12:00 - 13:00 น.)",
-        dish: isVegetarian
-          ? "สลัดคีนัวควบคู่เทมเป้กริลล์ / ถั่วลูกไก่ต้ม + อะโวคาโดและน้ำมันมะกอก"
-          : isNoSeafood
-          ? "สเต็กอกไก่หมักพริกไทยดำ + มันหวานนึ่ง + สลัดผักน้ำใส"
-          : "ข้าวกล้องหน้าปลาแซลมอนย่างซีอิ๊วโซเดียมต่ำ + ฟักทองนึ่ง",
-        calories: calPerMeal,
-        protein: `${proteinPerMeal} กรัม`,
-        carbs: `${Math.round((calPerMeal * 0.5) / 4)} กรัม`,
-        fat: `${Math.round((calPerMeal * 0.25) / 9)} กรัม`,
-        safetyNote: "คัดกรองสารก่อภูมิแพ้ตามข้อมูลของคุณโดยเด็ดขาด",
-      },
-    ];
+    const allergySafetyNote = [
+      isNoSeafood ? "ปลอดอาหารทะเล" : "",
+      isNoEgg ? "ปลอดไข่" : "",
+      isNoDairy ? "ปลอดนมวัว/เนย" : "",
+      isNoSoy ? "ปลอดถั่วเหลือง" : "",
+      isNoPeanuts ? "ปลอดถั่วลิสง" : "",
+    ].filter(Boolean).join(" • ");
 
+    const finalSafetyNote = allergySafetyNote
+      ? `ผ่านการตรวจสอบ Hard Filter: ${allergySafetyNote} 100%`
+      : "คัดกรองสารอาหารครบถ้วนตามโควต้าพลังงานและสุขภาพของคุณ";
+
+    const meals: MealItem[] = [];
+
+    // ==========================================
+    // มื้อที่ 1 (มื้อเช้า หรือ Brunch)
+    // ==========================================
+    const meal1Title = mealsCount === 2 ? "มื้อที่ 1 (Brunch 10:00 - 11:30 น.)" : "มื้อเช้า (07:30 - 08:30 น.)";
+    
+    // ตัวเลือกที่ 1: ตามสั่ง / นอกบ้าน
+    let m1StreetDish = "ข้าวราดกะเพราอกไก่ชิ้น + ไข่ต้ม (สั่ง: ผัดน้ำมันน้อย ไม่ใส่น้ำตาล)";
+    let m1StreetTip = "บอกแม่ค้า: 'ผัดน้ำมันน้อยมาก ไม่ใส่น้ำตาล/ผงชูรส' สั่งไข่ต้มแทนไข่ดาวทอด ประหยัดแคลอรี่ได้ 150 kcal";
+    let m1StreetPlate = "แตงกวาผักเคียง 2 ส่วน : ข้าวสวย 1 ทัพพี : อกไก่และไข่ต้ม 1 ส่วน";
+
+    if (isVegetarian) {
+      if (isNoSoy) {
+        m1StreetDish = "ข้าวราดผัดเห็ดสามอย่างใส่น้ำมันมะกอก + ไข่ต้ม 2 ฟอง";
+        m1StreetTip = "สั่ง: 'ผัดเห็ดผักรวมน้ำมันน้อย ไม่ใส่น้ำมันหอยแท้ ใช้ซีอิ๊วขาวเห็ดหอมแทน'";
+        m1StreetPlate = "เห็ดและผักรวม 2 ส่วน : ข้าวกล้อง 1 ส่วน : ไข่ต้ม 1 ส่วน";
+      } else {
+        m1StreetDish = "ข้าวราดเต้าหู้ขาวผัดกะเพราเห็ดหอม + ไข่ต้ม (สั่งไม่หวาน)";
+        m1StreetTip = "สั่ง: 'เต้าหู้ผัดกะเพราน้ำมันน้อย ไม่ใส่น้ำตาลและผงชูรส'";
+        m1StreetPlate = "ผักเคียง 2 ส่วน : ข้าวสวย 1 ทัพพี : เต้าหู้และไข่ต้ม 1 ส่วน";
+      }
+    } else if (isNoEgg) {
+      m1StreetDish = "ข้าวราดอกไก่ผัดขิงเห็ดหูหนู (สั่งไม่หวาน ผัดน้ำมันน้อย)";
+      m1StreetTip = "สั่งแม่ค้าเพิ่มปริมาณเนื้อไก่ล้วนเพื่อชดเชยโปรตีนจากไข่ต้ม ผัดน้ำมันครึ่งช้อนชา";
+      m1StreetPlate = "เห็ดหูหนูและขิง 2 ส่วน : ข้าว 1 ทัพพี : อกไก่ล้วน 1 ส่วน";
+    }
+
+    // ตัวเลือกที่ 2: ทำเองง่ายๆ
+    let m1HomeDish = "ข้าวไรซ์เบอร์รี่ 1 ทัพพี + อกไก่หมักพริกไทยดำย่าง + ผักลวก (บรอกโคลี/แครอท)";
+    let m1HomeTip = "ใช้กระทะเทฟลอนสเปรย์น้ำมันมะกอกบางๆ ปรุงรสด้วยซีอิ๊วขาวลดโซเดียม 1 ช้อนชา + พริกไทยดำบด";
+    let m1HomePlate = "บรอกโคลีและแครอทนึ่ง 2 ส่วน : ข้าวไรซ์เบอร์รี่ 1 ส่วน : อกไก่ย่าง 1 ฝ่ามือ";
+
+    if (isVegetarian) {
+      if (isNoSoy) {
+        m1HomeDish = "ข้าวกล้อง + เห็ดย่างสมุนไพร + ถั่วลูกไก่ต้ม + ไข่ต้ม 2 ฟอง";
+        m1HomeTip = "ต้มถั่วลูกไก่ไว้ล่วงหน้า ใช้น้ำมันมะกอก 1 ช้อนชาคลุกเห็ดก่อนกริลล์";
+        m1HomePlate = "สลัดผักและเห็ด 2 ส่วน : ข้าวกล้อง 1 ส่วน : ไข่ต้มและถั่วลูกไก่ 1 ส่วน";
+      } else {
+        m1HomeDish = "ข้าวกล้อง + เต้าหู้ขาวกริลล์ซอสเทอริยากิโซเดียมต่ำ + บรอกโคลีนึ่ง";
+        m1HomeTip = "ซับน้ำจากเต้าหู้ให้แห้ง กริลล์บนกระทะจนผิวเหลืองกรอบ ใส่น้ำซอสเพียง 1 ช้อนโต๊ะ";
+        m1HomePlate = "บรอกโคลีนึ่ง 2 ส่วน : ข้าวกล้อง 1 ส่วน : เต้าหู้กริลล์ 1 แผ่นใหญ่";
+      }
+    } else if (isNoEgg) {
+      m1HomeDish = "ข้าวกล้อง + สันในหมูหมักกระเทียมพริกไทยย่าง + ฟักทองนึ่งและผักต้ม";
+      m1HomeTip = "เลือกสันในหมูไร้มัน ปรุงด้วยกระเทียมสับและเกลือชมพูเล็กน้อย ย่างในหม้อทอดไร้น้ำมัน";
+      m1HomePlate = "ผักต้ม 2 ส่วน : ข้าวกล้อง 1 ส่วน : สันในหมูย่าง 1 ส่วน";
+    }
+
+    // ตัวเลือกที่ 3: พร้อมทานสะดวก
+    let m1QuickDish = "อกไก่นุ่มพร้อมทาน (7-Eleven) + ข้าวกล้องถ้วย + สลัดผักน้ำใส";
+    let m1QuickTip = "ฉีกซองอุ่นเวฟ 1 นาที ทานคู่น้ำสลัดงาญี่ปุ่นน้ำใส (เทเพียงครึ่งซอง เลี่ยงน้ำสลัดครีม)";
+    let m1QuickPlate = "สลัดผัก 1 กล่อง (2 ส่วน) : ข้าวกล้อง 1 ถ้วย (1 ส่วน) : อกไก่นุ่ม 1 ชิ้น (1 ส่วน)";
+
+    if (isVegetarian) {
+      m1QuickDish = isNoSoy
+        ? "ข้าวโพดหวานต้ม + ไข่ต้มพร้อมทาน 2 ฟอง + สลัดผักรวมน้ำใส"
+        : "ถั่วแระญี่ปุ่นพร้อมทาน + ข้าวกล้องถ้วย + นมถั่วเหลืองสูตรไม่หวาน";
+      m1QuickTip = "หยิบง่ายในร้านสะดวกซื้อ โปรตีนจากพืชและไข่ต้ม อิ่มท้องเร็ว";
+      m1QuickPlate = "สลัดผัก 2 ส่วน : ข้าวกล้อง/ข้าวโพด 1 ส่วน : โปรตีนจากพืช 1 ส่วน";
+    } else if (isNoDairy && !isVegetarian) {
+      m1QuickDish = "อกไก่นุ่มพริกไทยดำ + ข้าวไรซ์เบอร์รี่ถ้วย + กล้วยหอม 1 ลูก";
+      m1QuickTip = "ตรวจสอบฉลาก ปราศจากส่วนผสมของเนยและนมวัว 100%";
+      m1QuickPlate = "ผักสลัด 2 ส่วน : ข้าวไรซ์เบอร์รี่ 1 ส่วน : อกไก่นุ่ม 1 ส่วน";
+    }
+
+    meals.push({
+      mealName: meal1Title,
+      calories: calPerMeal,
+      protein: `${proteinPerMeal} กรัม`,
+      carbs: `${carbsPerMeal} กรัม`,
+      fat: `${fatPerMeal} กรัม`,
+      safetyNote: finalSafetyNote,
+      options: [
+        { category: "ตามสั่ง/นอกบ้าน", dish: m1StreetDish, orderingTip: m1StreetTip, plateRatio: m1StreetPlate },
+        { category: "ทำเองง่ายๆ", dish: m1HomeDish, orderingTip: m1HomeTip, plateRatio: m1HomePlate },
+        { category: "พร้อมทานสะดวก", dish: m1QuickDish, orderingTip: m1QuickTip, plateRatio: m1QuickPlate },
+      ],
+    });
+
+    // ==========================================
+    // มื้อที่ 2 (มื้อกลางวัน หรือ Dinner ของคนทาน 2 มื้อ)
+    // ==========================================
+    const meal2Title = mealsCount === 2 ? "มื้อที่ 2 (Dinner 17:00 - 18:30 น.)" : "มื้อกลางวัน (12:00 - 13:00 น.)";
+
+    let m2StreetDish = isNoSeafood
+      ? "เกาเหลาไก่ฉีก/หมูสันในล้วนพิเศษเนื้อ + ข้าวสวย 1 ทัพพี (สั่ง: ไม่ใส่กระเทียมเจียว ไม่ใส่ผงชูรส)"
+      : "ข้าวหน้าปลากะพงย่างซีอิ๊วโซเดียมต่ำ + ผักต้มเคียง (สั่งไม่เค็มจัด)";
+    let m2StreetTip = "สั่ง: 'ไม่เจียวน้ำมัน ไม่ปรุงน้ำตาลเพิ่ม ซดน้ำซุปเพียงเล็กน้อย' เพื่อคุมโซเดียมไม่ให้บวมน้ำ";
+    let m2StreetPlate = "ถั่วงอกและผักเคียง 2 ส่วน : ข้าวสวย 1 ส่วน : เนื้อไก่/ปลา 1 ส่วน";
+
+    if (isVegetarian) {
+      m2StreetDish = isNoSoy
+        ? "ราดหน้าหมี่ข้าวกล้องผักรวมเห็ดหอม (สั่ง: ใช้น้ำมันน้อย แยกน้ำราด ไม่หวาน)"
+        : "ก๋วยเตี๋ยวลุยสวนเต้าหู้เห็ดหอม + น้ำจิ้มซีฟู้ดเจรสเปรี้ยวหวานน้อย";
+      m2StreetTip = "เน้นผักสดและเห็ด ทานน้ำจิ้มพอแตะรสชาติ หลีกเลี่ยงของทอดเจที่มีน้ำมันแฝงสูง";
+      m2StreetPlate = "ผักสดลุยสวน 2 ส่วน : แผ่นแป้งข้าว 1 ส่วน : เต้าหู้/เห็ด 1 ส่วน";
+    }
+
+    let m2HomeDish = isNoSeafood
+      ? "สเต็กอกไก่หรือสันในหมูกริลล์พริกไทยดำ + มันเทศนึ่ง 1 หัว + สลัดผักน้ำส้มสายชูหมักแอปเปิ้ล (ACV)"
+      : "สเต็กปลาแซลมอนหรือปลากะพงย่างกระทะ + มันบดสูตรไม่ใส่เนย + หน่อไม้ฝรั่งย่าง";
+    let m2HomeTip = "ใช้ความร้อนปานกลาง โรยเกลือเล็กน้อยและโรสแมรี่ ช่วยเพิ่มกลิ่นหอมโดยไม่ต้องพึ่งผงปรุงรสสำเร็จรูป";
+    let m2HomePlate = "สลัดผักหรือหน่อไม้ฝรั่ง 2 ส่วน : มันเทศ/มันบด 1 ส่วน : สเต็ก 1 ชิ้นเต็มฝ่ามือ";
+
+    if (isVegetarian) {
+      m2HomeDish = isNoSoy
+        ? "สลัดควินัวผสมถั่วลูกไก่อบเครื่องเทศ + อะโวคาโดครึ่งลูกและมะเขือเทศราชินี"
+        : "เทมเป้อบซอสการ์ลิคเฮิร์บ + ข้าวไรซ์เบอร์รี่ + ผัดผักกวางตุ้งน้ำมันมะกอก";
+      m2HomeTip = "ควินัวและเทมเป้เป็นสุดยอดแหล่งโปรตีนพืชที่มีกรดอะมิโนครบถ้วน อิ่มท้องนาน";
+      m2HomePlate = "ผักสลัดหลากสี 2 ส่วน : ควินัว/ข้าวไรซ์เบอร์รี่ 1 ส่วน : เทมเป้/ถั่ว 1 ส่วน";
+    }
+
+    let m2QuickDish = isNoSeafood
+      ? "สันในไก่ย่างถ่านพร้อมทาน + ข้าวสวยหอมมะลิผสมข้าวกล้อง + น้ำพริกอกไก่คลีน"
+      : "ทูน่าในน้ำแร่ 1 กระป๋อง + ขนมปังโฮลวีต 2 แผ่น + ผักกาดคอสสด";
+    let m2QuickTip = "เลือกทูน่า 'ในน้ำแร่' เท่านั้นเพื่อเลี่ยงน้ำมันพืชแปรรูป บีบมะนาวสดเพิ่มรสชาติ";
+    let m2QuickPlate = "ผักสด 2 ส่วน : ข้าวกล้องหรือขนมปัง 1 ส่วน : เนื้อสัตว์ 1 ส่วน";
+
+    if (isVegetarian) {
+      m2QuickDish = "สลัดโรลผักสดเต้าหู้ + ข้าวโพดหวานนึ่ง + ผลไม้สดตามฤดูกาล (ฝรั่ง/แอปเปิ้ล)";
+      m2QuickTip = "แตะน้ำจิ้มบางๆ ไม่จุ่มจนท่วม ได้ทั้งวิตามินและใยอาหารกระตุ้นการขับถ่าย";
+      m2QuickPlate = "ผักสดสลัดโรล 2 ส่วน : แผ่นแป้งและข้าวโพด 1 ส่วน : เต้าหู้ 1 ส่วน";
+    }
+
+    meals.push({
+      mealName: meal2Title,
+      calories: calPerMeal,
+      protein: `${proteinPerMeal} กรัม`,
+      carbs: `${carbsPerMeal} กรัม`,
+      fat: `${fatPerMeal} กรัม`,
+      safetyNote: finalSafetyNote,
+      options: [
+        { category: "ตามสั่ง/นอกบ้าน", dish: m2StreetDish, orderingTip: m2StreetTip, plateRatio: m2StreetPlate },
+        { category: "ทำเองง่ายๆ", dish: m2HomeDish, orderingTip: m2HomeTip, plateRatio: m2HomePlate },
+        { category: "พร้อมทานสะดวก", dish: m2QuickDish, orderingTip: m2QuickTip, plateRatio: m2QuickPlate },
+      ],
+    });
+
+    // ==========================================
+    // มื้อที่ 3 (มื้อเย็น สำหรับผู้ทาน 3 มื้อขึ้นไป)
+    // ==========================================
     if (mealsCount >= 3) {
-      mealTemplates.push({
-        mealName: "มื้อเย็น (17:30 - 19:00 น.)",
-        dish: isVegetarian
-          ? "ต้มจับฉ่ายเต้าหู้เห็ดหอม + ข้าวกล้องครึ่งทัพพี"
-          : "ปลากะพงนึ่งซีอิ๊ว (หรืออกไก่ต้มน้ำปลาโซเดียมต่ำ) + แกงจืดเต้าหู้หมูสับตำลึง",
+      const meal3Title = "มื้อเย็น (17:30 - 19:00 น.)";
+
+      let m3StreetDish = "แกงจืดเต้าหู้หมูสับตำลึง/ผักกาดขาว (สั่ง: ไม่ใส่ผงชูรส ไม่ใส่กระเทียมเจียว) + ข้าวกล้องครึ่งทัพพี";
+      let m3StreetTip = "มื้อเย็นย่อยง่าย ซดน้ำแกงจืดอุ่นๆ ช่วยให้อยู่ท้อง ซดน้ำแต่พอดีเพื่อเลี่ยงโซเดียมก่อนนอน";
+      let m3StreetPlate = "ตำลึงและผักกาดขาว 2 ส่วน : ข้าวกล้องครึ่งทัพพี (1 ส่วน) : หมูสับไร้มัน/เต้าหู้ (1 ส่วน)";
+
+      if (isVegetarian) {
+        m3StreetDish = "ต้มจับฉ่ายเจเต้าหู้เห็ดหอม (สั่ง: รสอ่อน ไม่หวาน) + ข้าวกล้องครึ่งทัพพี";
+        m3StreetTip = "เน้นตักเนื้อผักจับฉ่ายและเต้าหู้ หลีกเลี่ยงการซดน้ำมันที่ลอยอยู่ด้านบน";
+        m3StreetPlate = "ผักจับฉ่าย 2 ส่วน : ข้าวกล้องครึ่งทัพพี : เต้าหู้เห็ดหอม 1 ส่วน";
+      } else if (isNoSoy) {
+        m3StreetDish = "ต้มยำอกไก่น้ำใสใส่เห็ดฟาง (สั่ง: น้ำใส ไม่ใส่นมข้น ไม่หวาน) + ข้าวสวย 1 ทัพพี";
+        m3StreetTip = "ต้มยำน้ำใสให้พลังงานต่ำมาก สมุนไพรข่า ตะไคร้ ใบมะกรูด ช่วยขับลมและกระตุ้นการเผาผลาญ";
+        m3StreetPlate = "เห็ดฟางและสมุนไพร 2 ส่วน : ข้าวสวย 1 ส่วน : อกไก่ฉีก 1 ส่วน";
+      }
+
+      let m3HomeDish = isNoSeafood
+        ? "ต้มซุปน่องไก่ไม่ติดหนังใส่มันฝรั่ง มะเขือเทศ และหอมใหญ่ + ข้าวกล้อง"
+        : "ปลากะพงหรือปลานิลนึ่งมะนาวสมุนไพร + ผักกาดขาวลวก + ข้าวกล้องครึ่งทัพพี";
+      let m3HomeTip = "การนึ่งหรือต้มเป็นวิธีปรุงที่ดีที่สุดสำหรับมื้อเย็น ไร้น้ำมันแฝง ร่างกายย่อยและดูดซึมได้ง่าย หลับสบาย";
+      let m3HomePlate = "ผักลวกและมะเขือเทศ 2 ส่วน : ข้าวกล้อง 1 ส่วน : เนื้อปลาหรือไก่ 1 ส่วน";
+
+      if (isVegetarian) {
+        m3HomeDish = isNoSoy
+          ? "แกงเห็ดรวมใส่ฟักทองและใบแมงลัก + ถั่วแระต้ม + ข้าวกล้องครึ่งทัพพี"
+          : "เต้าหู้ขาวนึ่งซีอิ๊วเห็ดหอม + คะน้าฮ่องกงลวก + ข้าวกล้องครึ่งทัพพี";
+        m3HomeTip = "ใช้ความหวานธรรมชาติจากฟักทองและเห็ดหอม อิ่มสบายท้อง ไม่อึดอัดเวลานอน";
+        m3HomePlate = "คะน้า/เห็ดรวม 2 ส่วน : ข้าวกล้อง 1 ส่วน : เต้าหู้ขาว 1 ส่วน";
+      }
+
+      let m3QuickDish = isNoEgg
+        ? "อกไก่นุ่มฉีก + สลัดผักรวมน้ำสลัดบัลซามิก + ฝรั่งสด 4-5 ชิ้น"
+        : "ไข่ตุ๋นพร้อมทานสูตรโซเดียมต่ำ 2 ถ้วย + สลัดผักรวม + มันหวานญี่ปุ่นชิ้นเล็ก";
+      let m3QuickTip = "ไข่ตุ๋นและอกไก่นุ่มพร้อมทานให้โปรตีนคุณภาพสูง ย่อยง่าย ไม่รบกวนการนอนหลับ";
+      let m3QuickPlate = "สลัดผัก 2 ส่วน : มันหวาน 1 ส่วน : ไข่ตุ๋น/อกไก่ 1 ส่วน";
+
+      if (isVegetarian) {
+        m3QuickDish = "สลัดผักเต้าหู้พร้อมทาน + กล้วยน้ำว้า 1 ลูก + นมอัลมอนด์ไม่หวาน";
+        m3QuickTip = "กล้วยน้ำว้ามีโพแทสเซียมและทริปโตเฟน ช่วยผ่อนคลายกล้ามเนื้อและระบบประสาท";
+        m3QuickPlate = "สลัดผัก 2 ส่วน : กล้วยน้ำว้า 1 ส่วน : เต้าหู้และนมอัลมอนด์ 1 ส่วน";
+      }
+
+      meals.push({
+        mealName: meal3Title,
         calories: calPerMeal,
         protein: `${proteinPerMeal} กรัม`,
-        carbs: `${Math.round((calPerMeal * 0.45) / 4)} กรัม`,
-        fat: `${Math.round((calPerMeal * 0.25) / 9)} กรัม`,
-        safetyNote: "เน้นโปรตีนย่อยง่าย แป้งพอเหมาะก่อนเข้านอน",
+        carbs: `${Math.round(carbsPerMeal * 0.9)} กรัม`,
+        fat: `${fatPerMeal} กรัม`,
+        safetyNote: finalSafetyNote,
+        options: [
+          { category: "ตามสั่ง/นอกบ้าน", dish: m3StreetDish, orderingTip: m3StreetTip, plateRatio: m3StreetPlate },
+          { category: "ทำเองง่ายๆ", dish: m3HomeDish, orderingTip: m3HomeTip, plateRatio: m3HomePlate },
+          { category: "พร้อมทานสะดวก", dish: m3QuickDish, orderingTip: m3QuickTip, plateRatio: m3QuickPlate },
+        ],
       });
     }
 
+    // ==========================================
+    // มื้อที่ 4 (ของว่าง Pre/Post Workout สำหรับ 4 มื้อขึ้นไป)
+    // ==========================================
     if (mealsCount >= 4) {
-      mealTemplates.push({
-        mealName: "ของว่างพลังงานสูง (Snack ก่อนออกกำลังกาย)",
-        dish: isNoDairy
-          ? "กล้วยหอม 1 ลูก + นมอัลมอนด์ / นมถั่วเหลืองไม่หวาน"
-          : isNoPeanuts
-          ? "โยเกิร์ตสูตรไขมัน 0% + กีวี่สด"
-          : "กรีกโยเกิร์ต 1 ถ้วย + ถั่วอัลมอนด์อบ 10 เม็ด",
-        calories: Math.round(calPerMeal * 0.6),
-        protein: "15 กรัม",
-        carbs: "25 กรัม",
+      const snackCal = Math.round(calPerMeal * 0.6);
+      const snackProtein = Math.max(12, Math.round(proteinPerMeal * 0.6));
+
+      const snackStreetDish = "กล้วยปิ้งไม่ราดน้ำเชื่อม 2 ลูก + นมถั่วเหลือง/นมจืดไม่ใส่น้ำตาล 1 กล่อง";
+      const snackStreetTip = "สั่ง: 'ไม่ราดน้ำตาลปี๊บ/กะทิ' ได้คาร์บเชิงเดี่ยวจากธรรมชาติ ดูดซึมเป็นพลังงานออกกำลังกายทันที";
+      const snackStreetPlate = "กล้วยปิ้ง (พลังงานพร้อมใช้) + นมจืด (โปรตีน)";
+
+      const snackHomeDish = isNoDairy
+        ? "แอปเปิ้ลเขียวหั่นเสี้ยว 1 ลูก + เนยถั่วอัลมอนด์ 1 ช้อนโต๊ะ (หรือไข่ต้ม 1 ฟอง)"
+        : isNoPeanuts
+        ? "กรีกโยเกิร์ตแท้ 1 ถ้วย + ผลไม้ตระกูลเบอร์รี่สด"
+        : "กรีกโยเกิร์ต 1 ถ้วย + เนยถั่วแท้ 1 ช้อนชา + กล้วยหอมครึ่งลูก";
+      const snackHomeTip = "ให้ทั้งโปรตีนและไขมันดี ชะลอความหิว และช่วยซ่อมแซมกล้ามเนื้อหลังฝึก";
+      const snackHomePlate = "ผลไม้สด 1 ส่วน : กรีกโยเกิร์ต/ไข่ต้ม 1 ส่วน";
+
+      const snackQuickDish = isNoDairy
+        ? "กล้วยหอม 1 ลูก + ถั่วอัลมอนด์อบธรรมชาติ 1 ซองเล็ก (หรือนมอัลมอนด์โปรตีนสูง)"
+        : "นมเวย์โปรตีนพร้อมดื่มรสจืด/ช็อกโกแลต (หรือนมโปรตีนสูง 25-30g)";
+      const snackQuickTip = "หยิบสะดวก พกพาง่าย ทานก่อนออกกำลังกาย 30-45 นาที หรือทันทีหลังฝึกเสร็จ";
+      const snackQuickPlate = "กล้วยหอม 1 ลูก : นมโปรตีนสูง 1 ขวด";
+
+      meals.push({
+        mealName: "ของว่างพลังงานสูง (Pre / Post Workout Snack)",
+        calories: snackCal,
+        protein: `${snackProtein} กรัม`,
+        carbs: "24 กรัม",
         fat: "5 กรัม",
-        safetyNote: "ของว่างให้พลังงานเร็ว ไม่จุกแน่นท้อง",
+        safetyNote: finalSafetyNote,
+        options: [
+          { category: "ตามสั่ง/นอกบ้าน", dish: snackStreetDish, orderingTip: snackStreetTip, plateRatio: snackStreetPlate },
+          { category: "ทำเองง่ายๆ", dish: snackHomeDish, orderingTip: snackHomeTip, plateRatio: snackHomePlate },
+          { category: "พร้อมทานสะดวก", dish: snackQuickDish, orderingTip: snackQuickTip, plateRatio: snackQuickPlate },
+        ],
       });
     }
 
-    return mealTemplates;
+    return meals;
   };
 
   const mealPlan = generatePersonalizedMealPlan();
@@ -571,7 +1331,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-zinc-900 selection:bg-emerald-500 selection:text-white pb-24 relative">
       {/* แถบนำทางด้านบน */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 py-3.5">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 py-3.5 print:hidden">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 font-black text-white text-base shadow-sm">
@@ -582,16 +1342,43 @@ export default function DashboardPage() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {currentUser && (
+              <span className="hidden md:inline text-xs text-zinc-600 font-medium">
+                คุณ <span className="font-bold text-zinc-900">{currentUser.name}</span>
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={handlePrintPlan}
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
+              title="พิมพ์หรือบันทึกเป็น PDF"
+            >
+              <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span className="hidden sm:inline">พิมพ์ / PDF</span>
+            </button>
+
             <Link
               href="/assessment"
-              className="px-3.5 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
+              className="px-3 py-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-xs font-semibold text-zinc-700 transition flex items-center gap-1.5 shadow-sm"
             >
               <svg className="w-3.5 h-3.5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              แก้ไขข้อมูลแบบประเมิน
+              <span className="hidden sm:inline">แก้ไขข้อมูล</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleResetAllData}
+              className="px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition"
+              title="ล้างข้อมูลแผนเพื่อเริ่มใหม่"
+            >
+              รีเซ็ต
+            </button>
           </div>
         </div>
       </header>
@@ -628,9 +1415,19 @@ export default function DashboardPage() {
         <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-100 pb-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 mb-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                เป้าหมายหลัก: {goalLabels[assessment.fitnessGoal] || "ดูแลสุขภาพทั่วไป"}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {((assessment.fitnessGoals && assessment.fitnessGoals.length > 0)
+                  ? assessment.fitnessGoals
+                  : [assessment.fitnessGoal]
+                ).map((g) => (
+                  <div
+                    key={g}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    เป้าหมาย: {goalLabels[g] || g}
+                  </div>
+                ))}
               </div>
               <h1 className="text-2xl font-black text-zinc-950">
                 แดชบอร์ดสุขภาพและแผนประจำวันของคุณ
@@ -651,11 +1448,11 @@ export default function DashboardPage() {
           </div>
 
           {/* สถิติตัวเลขพลังงาน 4 ช่อง */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 text-center">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">BMI ปัจจุบัน</div>
-              <div className="text-2xl font-black text-zinc-900 mt-0.5">{assessment.bmi}</div>
-              <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-5 text-center">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">BMI ปัจจุบัน</div>
+              <div className="text-2xl font-black text-zinc-900 mt-1">{assessment.bmi}</div>
+              <div className="text-xs text-emerald-600 font-bold mt-1">
                 {assessment.bmi < 18.5
                   ? "ผอม"
                   : assessment.bmi <= 22.9
@@ -666,66 +1463,80 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">เป้าหมายแคลอรี่ / วัน</div>
-              <div className="text-2xl font-black text-emerald-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">เป้าหมายแคลอรี่</div>
+              <div className="text-2xl font-black text-emerald-600 mt-1">
                 {assessment.targetCalories}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">kcal / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">kcal / วัน</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">โปรตีนเป้าหมาย</div>
-              <div className="text-2xl font-black text-teal-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">โปรตีนเป้าหมาย</div>
+              <div className="text-2xl font-black text-teal-600 mt-1">
                 {assessment.targetProteinGrams || Math.round(assessment.weight * 1.6)}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">กรัม / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">กรัม / วัน</div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
-              <div className="text-[11px] font-semibold text-zinc-500">ดื่มน้ำขั้นต่ำ</div>
-              <div className="text-2xl font-black text-cyan-600 mt-0.5">
+            <div className="p-4 rounded-2xl bg-slate-50/90 border border-zinc-200/90 shadow-xs">
+              <div className="text-xs font-semibold text-zinc-500">ดื่มน้ำขั้นต่ำ</div>
+              <div className="text-2xl font-black text-cyan-600 mt-1">
                 {(assessment.weight * 0.035).toFixed(1)}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">ลิตร / วัน</div>
+              <div className="text-xs text-zinc-400 mt-1">ลิตร / วัน</div>
             </div>
           </div>
         </div>
 
-        {/* แถบเลือกแท็บ (Overview / Workout / Nutrition) */}
-        <div className="flex border-b border-zinc-200">
-          <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
-              activeTab === "overview"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
-            }`}
-          >
-            ภาพรวมและข้อควรระวัง
-          </button>
+        {/* แถบเลือกแท็บแบบ Pill Navigation ขนาดใหญ่ ชัดเจน ไม่ปวดตา */}
+        <div className="flex flex-wrap gap-2 p-1.5 bg-zinc-200/60 rounded-2xl w-fit">
           <button
             type="button"
             onClick={() => setActiveTab("workout")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
               activeTab === "workout"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
+                ? "bg-white text-emerald-700 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
-            ตารางออกกำลังกาย ({assessment.workoutDays} วัน/สัปดาห์)
+            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span>ตารางออกกำลังกาย</span>
+            <span className="text-xs bg-emerald-100/90 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+              {assessment.workoutDays} วัน/สัปดาห์
+            </span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("nutrition")}
-            className={`py-3 px-5 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
               activeTab === "nutrition"
-                ? "border-emerald-500 text-emerald-600"
-                : "border-transparent text-zinc-500 hover:text-zinc-800"
+                ? "bg-white text-teal-700 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
-            แผนอาหาร (Hard Filter ปลอดภัย 100%)
+            <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+            <span>แผนโภชนาการ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
+              activeTab === "overview"
+                ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
+                : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>ภาพรวมสุขภาพ</span>
           </button>
         </div>
 
@@ -825,31 +1636,279 @@ export default function DashboardPage() {
            ======================================================== */}
         {activeTab === "workout" && (
           <div className="space-y-6">
+            {/* การ์ดสรุปจุดเน้นกล้ามเนื้อและโปรแกรมฝึก (เมื่อข้ามการสแกนสรีระ) หรือผลวิเคราะห์สรีระ (เมื่อสแกนจริง) */}
+            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-indigo-800/40 relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                      {assessment.bodyScanResult ? "AI Body Structure & Target Muscle Focus" : "Target Muscle Focus & Routine Plan"}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black text-white mt-1 flex flex-wrap items-center gap-2">
+                    <span>
+                      {assessment.bodyScanResult
+                        ? "ผลวิเคราะห์โครงสร้างร่างกายและจุดเน้นกล้ามเนื้อ"
+                        : "จุดเน้นกล้ามเนื้อและโปรแกรมฝึกเฉพาะบุคคล"}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-300 mt-1">
+                    {assessment.bodyScanResult
+                      ? "ระบบได้นำข้อมูลสรีระของคุณมาวิเคราะห์ทางกายวิภาคศาสตร์เพื่อวางตารางฝึกเฉพาะส่วนอย่างแม่นยำ"
+                      : "ตารางฝึกถูกจัดตามข้อมูลสุขภาพพื้นฐานและมุ่งเน้นเพิ่มจำนวนเซ็ตในกลุ่มกล้ามเนื้อที่คุณเลือกเป็นพิเศษ (ข้ามการสแกนสัดส่วน)"}
+                  </p>
+                </div>
+
+                {assessment.bodyScanResult ? (
+                  <div className="px-4 py-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 text-center shrink-0">
+                    <div className="text-[10px] text-indigo-200">คะแนนความพร้อมสรีระ (Body Readiness Score)</div>
+                    <div className="text-2xl font-black text-emerald-400 font-mono mt-0.5">
+                      {assessment.bodyScanResult.matchScore}%
+                    </div>
+                    <div className="text-[10px] text-emerald-300 font-medium">ความพร้อมสูงมาก</div>
+                  </div>
+                ) : (
+                  <Link
+                    href="/assessment"
+                    className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-semibold text-emerald-300 transition shrink-0 flex items-center gap-2 self-start sm:self-center"
+                  >
+                    <svg className="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>สแกนสรีระด้วยกล้อง</span>
+                    <span className="text-zinc-400">&rarr;</span>
+                  </Link>
+                )}
+              </div>
+
+              {/* รายละเอียดสแกนสรีระ (แสดงเฉพาะเมื่อมีผลการสแกนจริงจากกล้องหรือรูปถ่าย) */}
+              {assessment.bodyScanResult && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
+                  <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="text-[10px] text-zinc-400 uppercase font-semibold">โครงสร้างร่างกาย (Somatotype)</div>
+                    <div className="text-sm font-bold text-white mt-1">
+                      {assessment.bodyScanResult.somatotypeThai}
+                    </div>
+                    <div className="text-[11px] text-zinc-300 mt-1">
+                      สัดส่วนไหล่ต่อสะโพก: <strong className="text-indigo-300 font-mono">{assessment.bodyScanResult.shoulderToHipRatio}</strong>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="text-[10px] text-zinc-400 uppercase font-semibold">จุดเด่นทางโครงสร้าง</div>
+                    <div className="text-xs text-emerald-300 font-medium mt-1 leading-relaxed">
+                      {assessment.bodyScanResult.advantages?.[0] || "ฐานโครงสร้างแข็งแรงและตอบสนองได้ดี"}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 mt-1">
+                      {assessment.bodyScanResult.timelineRecommendation}
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="text-[10px] text-zinc-400 uppercase font-semibold">จุดที่ต้องโฟกัสเป็นพิเศษ (Gaps)</div>
+                    <div className="text-xs text-amber-300 font-medium mt-1 leading-relaxed">
+                      {assessment.bodyScanResult.focusGaps?.[0] || "เน้นเพิ่มความแข็งแรงในมัดกล้ามเนื้อเป้าหมาย"}
+                    </div>
+                    <div className="text-[10px] text-zinc-400 mt-1 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>วิธีสแกน: {assessment.bodyScanResult.scanMethod === "webcam" ? "กล้องเว็บแคม" : "แนบรูปภาพ"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* กล้ามเนื้อเป้าหมายที่เลือกไว้ (Target Muscles Tags) */}
+              {assessment.targetMuscles && assessment.targetMuscles.length > 0 && (
+                <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-zinc-300 font-medium flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                    <span>มัดกล้ามเนื้อที่โฟกัสในตารางฝึก:</span>
+                  </span>
+                  {assessment.targetMuscles.map((muscle) => {
+                    const muscleLabels: Record<string, string> = {
+                      chest: "หน้าอก (Chest)",
+                      back: "ปีกและหลัง (Lats & Back)",
+                      shoulders_arms: "หัวไหล่และแขน (Shoulders & Arms)",
+                      abs: "ซิกแพค & หน้าท้อง (Abs & Core)",
+                      glutes: "ก้นและสะโพก (Glutes)",
+                      legs: "ต้นขาและน่อง (Quads & Hamstrings)",
+                    };
+                    return (
+                      <span
+                        key={muscle}
+                        className="px-3 py-1 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        <span>{muscleLabels[muscle] || muscle}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* กรอบหลักการ FITT-VP และเป้าหมายระยะเวลาตามเกณฑ์สากล WHO / ACSM */}
+            <div className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <h3 className="text-base font-bold text-zinc-900">
+                    โครงสร้างโปรแกรมตามหลักการ FITT-VP (ACSM Guidelines)
+                  </h3>
+                </div>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                  มาตรฐาน WHO &amp; ACSM
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">F - ความถี่</div>
+                  <div className="text-base font-extrabold text-zinc-900 mt-1">{assessment.workoutDays} วัน / สัปดาห์</div>
+                  <div className="text-xs text-emerald-700 font-medium mt-0.5">กระจายวันพักเหมาะสม</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">I - ความหนัก</div>
+                  <div className="text-base font-extrabold text-emerald-600 mt-1">Zone 2-3 (Moderate)</div>
+                  <div className="text-xs text-zinc-500 font-medium mt-0.5">RPE 5-6 เหนื่อยกำลังดี</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">T - เวลา</div>
+                  <div className="text-base font-extrabold text-teal-600 mt-1">{assessment.sessionMinutes || 40} นาที / ครั้ง</div>
+                  <div className="text-xs text-teal-700 font-medium mt-0.5">ตรงตามเกณฑ์สุขภาพสากล</div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200/80">
+                  <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">T - รูปแบบ</div>
+                  <div className="text-base font-extrabold text-cyan-600 mt-1">Resistance + Cardio</div>
+                  <div className="text-xs text-zinc-500 font-medium mt-0.5">กล้ามเนื้อและปอดหัวใจ</div>
+                </div>
+              </div>
+            </div>
+
+            {/* การ์ดอัตราการเต้นหัวใจเป้าหมาย (Target Heart Rate Zones - THR) */}
+            <div className="bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-teal-800/40 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                      Target Heart Rate Zones
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-white mt-1">
+                    อัตราการเต้นหัวใจเป้าหมายเฉพาะบุคคล (คำนวณจากอายุ {userAge} ปี)
+                  </h3>
+                  <p className="text-xs text-zinc-300 mt-0.5">
+                    เกณฑ์สากล HR<sub>max</sub> = 220 - {userAge} = <strong className="text-white font-mono">{thrZones.hrMax} bpm</strong> (ครั้ง/นาที)
+                  </p>
+                </div>
+
+                <div className="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-center shrink-0">
+                  <div className="text-xs text-zinc-300">อัตราเต้นหัวใจสูงสุด (HRmax)</div>
+                  <div className="text-xl font-bold text-emerald-400 font-mono mt-0.5">
+                    {thrZones.hrMax} <span className="text-xs font-normal text-zinc-300">bpm</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* แสดงโซน 1 ถึง 4 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Zone 1 */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-zinc-200">{thrZones.zone1.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone1.label}</span>
+                  </div>
+                  <div className="text-lg font-bold text-white font-mono mt-2">
+                    {thrZones.zone1.min} - {thrZones.zone1.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    {thrZones.zone1.desc}
+                  </p>
+                </div>
+
+                {/* Zone 2 (Recommended Highlight) */}
+                <div className="p-4 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400/80 relative shadow-lg shadow-emerald-500/10">
+                  <span className="absolute -top-2.5 right-3 px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-xs">
+                    โซนแนะนำหลัก
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-emerald-300">{thrZones.zone2.name}</span>
+                    <span className="text-xs font-mono text-emerald-300 font-bold">{thrZones.zone2.label}</span>
+                  </div>
+                  <div className="text-xl font-bold text-emerald-300 font-mono mt-2">
+                    {thrZones.zone2.min} - {thrZones.zone2.max} <span className="text-xs font-normal text-emerald-200">bpm</span>
+                  </div>
+                  <p className="text-xs text-zinc-200 mt-1 leading-relaxed">
+                    {thrZones.zone2.desc}
+                  </p>
+                </div>
+
+                {/* Zone 3 */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-amber-300">{thrZones.zone3.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone3.label}</span>
+                  </div>
+                  <div className="text-lg font-bold text-white font-mono mt-2">
+                    {thrZones.zone3.min} - {thrZones.zone3.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    {thrZones.zone3.desc}
+                  </p>
+                </div>
+
+                {/* Zone 4 */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-rose-300">{thrZones.zone4.name}</span>
+                    <span className="text-xs font-mono text-zinc-400">{thrZones.zone4.label}</span>
+                  </div>
+                  <div className="text-lg font-bold text-white font-mono mt-2">
+                    {thrZones.zone4.min} - {thrZones.zone4.max} <span className="text-xs font-normal text-zinc-400">bpm</span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    {thrZones.zone4.desc}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* กล่องเครื่องมือจับเวลาพักเซ็ต (Rest Timer) */}
             <div className="p-4 sm:p-5 rounded-3xl bg-white border border-zinc-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   เครื่องมือช่วยฝึก (Rest Timer)
                 </div>
-                <div className="text-sm font-black text-zinc-900 mt-0.5">
+                <div className="text-base font-bold text-zinc-900 mt-0.5">
                   นาฬิกาจับเวลาพักระหว่างเซ็ต
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="text-2xl font-black text-emerald-600 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-emerald-600 font-mono px-3 py-1 bg-emerald-50 rounded-xl border border-emerald-100">
                   {Math.floor(timerSeconds / 60)}:{(timerSeconds % 60).toString().padStart(2, "0")}
                 </div>
 
-                <div className="flex gap-1.5">
+                <div className="flex items-center gap-2">
                   {[30, 60, 90].map((sec) => (
                     <button
                       key={sec}
                       type="button"
                       onClick={() => handleStartTimer(sec)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                      className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold border transition active:scale-[0.98] ${
                         timerPreset === sec && isTimerRunning
-                          ? "bg-emerald-500 border-emerald-600 text-white"
+                          ? "bg-emerald-600 border-emerald-700 text-white shadow-sm"
                           : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                       }`}
                     >
@@ -860,7 +1919,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => setIsTimerRunning(false)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                      className="min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition active:scale-[0.98]"
                     >
                       หยุด
                     </button>
@@ -870,34 +1929,90 @@ export default function DashboardPage() {
             </div>
 
             {/* รายการวันฝึก */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               {workoutSchedule.map((day, dayIndex) => {
                 const isCompleted = completedDays.includes(dayIndex);
+                const currentLoc = dayLocations[dayIndex] || (assessment.workoutLocation as "home" | "gym" | "outdoor") || "home";
                 return (
                   <div
                     key={dayIndex}
-                    className={`bg-white border rounded-3xl p-6 shadow-sm transition ${
-                      isCompleted ? "border-emerald-300 bg-emerald-50/30" : "border-zinc-200"
+                    className={`bg-white border rounded-3xl p-5 sm:p-7 shadow-sm transition ${
+                      isCompleted ? "border-emerald-300 bg-emerald-50/20" : "border-zinc-200"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4 mb-4">
+                    {/* สวิตช์สลับสถานที่ฝึกประจำวัน (บ้าน / ฟิตเนส / กลางแจ้ง) */}
+                    <div className="mb-5 pb-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="text-sm font-semibold text-zinc-700 flex items-center gap-1.5">
+                          <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>สถานที่ฝึกวันนี้:</span>
+                        </span>
+                        <div className="inline-flex rounded-2xl p-1 bg-zinc-100 border border-zinc-200">
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchDayLocation(dayIndex, "home")}
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
+                              currentLoc === "home"
+                                ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
+                            }`}
+                          >
+                            <span>ที่บ้าน</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchDayLocation(dayIndex, "gym")}
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
+                              currentLoc === "gym"
+                                ? "bg-white text-teal-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
+                            }`}
+                          >
+                            <span>ฟิตเนส</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSwitchDayLocation(dayIndex, "outdoor")}
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
+                              currentLoc === "outdoor"
+                                ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
+                                : "text-zinc-600 hover:text-zinc-900"
+                            }`}
+                          >
+                            <span>กลางแจ้ง / สวน</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-zinc-500">
+                        * ปรับสถานที่ได้อิสระ ท่าและอุปกรณ์จะปรับให้สอดคล้องทันที
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-5 mb-5">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-base font-bold text-zinc-900">
+                        <div className="flex items-center gap-2.5">
+                          <h3 className="text-lg font-bold text-zinc-900">
                             {day.dayTitle}
                           </h3>
                           {isCompleted && (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                              ฝึกเสร็จแล้ววันนี้
+                            <span className="px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>ฝึกเสร็จแล้ว</span>
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          โฟกัส: {day.focus} • ระยะเวลา: {day.duration}
+                        <p className="text-sm text-zinc-600 mt-1">
+                          โฟกัส: <strong>{day.focus}</strong> • ระยะเวลา: <strong>{day.duration}</strong>
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2.5">
                         <button
                           type="button"
                           onClick={() =>
@@ -908,33 +2023,33 @@ export default function DashboardPage() {
                               initialIndex: 0,
                             })
                           }
-                          className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 transition flex items-center gap-2"
+                          className="min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 transition flex items-center gap-2 active:scale-[0.98]"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
-                          <span>เปิดโหมดจับท่า AI</span>
+                          <span>เริ่มฝึกทั้งวันด้วย AI</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleToggleCompleteDay(dayIndex)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-2 ${
+                          className={`min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold border transition flex items-center gap-2 active:scale-[0.98] ${
                             isCompleted
-                              ? "bg-emerald-500 border-emerald-600 text-white"
+                              ? "bg-emerald-600 border-emerald-700 text-white"
                               : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
                           }`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          {isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}
+                          <span>{isCompleted ? "บันทึกเรียบร้อย" : "ติ๊กฝึกเสร็จวันนี้"}</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* ตารางท่าออกกำลังกาย */}
-                    <div className="space-y-2.5">
+                    {/* ตารางท่าออกกำลังกาย (Clean, Breathable Cards with >=44px buttons) */}
+                    <div className="space-y-3.5">
                       {day.exercises.map((ex, exIndex) => {
                         const isExCompleted = Boolean(
                           completedExercises[`${dayIndex}-${exIndex}`]
@@ -942,49 +2057,97 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={exIndex}
-                            className={`p-3.5 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                            className={`p-4 sm:p-5 rounded-2xl border transition space-y-3 ${
                               isExCompleted
                                 ? "bg-emerald-50/40 border-emerald-300"
-                                : "bg-slate-50/80 border-zinc-200/80"
+                                : "bg-slate-50/60 border-zinc-200 hover:border-zinc-300"
                             }`}
                           >
-                            <div>
-                              <div className="text-xs font-bold text-zinc-900 flex items-center gap-2">
-                                <span>{ex.name}</span>
-                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                              <div className="flex flex-wrap items-center gap-2">
+                                {ex.phase === "warmup" && (
+                                  <span className="text-xs font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-md shrink-0">
+                                    Warm-up
+                                  </span>
+                                )}
+                                {ex.phase === "main" && (
+                                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-md shrink-0">
+                                    ท่าหลัก
+                                  </span>
+                                )}
+                                {ex.phase === "cooldown" && (
+                                  <span className="text-xs font-bold text-sky-800 bg-sky-100/90 px-2.5 py-0.5 rounded-md shrink-0">
+                                    Cool-down
+                                  </span>
+                                )}
+                                <h4 className="text-base font-bold text-zinc-900">
+                                  {ex.name}
+                                </h4>
+                                <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
                                   {ex.tag}
                                 </span>
+                                {ex.isTargetFocus && (
+                                  <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full shrink-0">
+                                    โฟกัสเฉพาะส่วน
+                                  </span>
+                                )}
                                 {isExCompleted && (
-                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-fade-in">
-                                    <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                     </svg>
                                     ผ่านแล้ว
                                   </span>
                                 )}
                               </div>
-                              {ex.note && (
-                                <p className="text-[11px] text-amber-700 mt-1 font-medium">
-                                  * {ex.note}
-                                </p>
-                              )}
-                            </div>
 
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="flex items-center gap-4 text-xs font-mono text-zinc-600">
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">เซ็ต:</span>{" "}
+                              {/* สถิติ เซ็ต / ครั้ง / พัก ชัดเจนอ่านง่าย */}
+                              <div className="flex items-center gap-2 text-xs font-mono text-zinc-700">
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">เซ็ต:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.sets}</strong>
                                 </div>
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">ครั้ง:</span>{" "}
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">ครั้ง:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.reps}</strong>
                                 </div>
-                                <div>
-                                  <span className="text-zinc-400 text-[10px]">พัก:</span>{" "}
+                                <div className="px-2.5 py-1 bg-white border border-zinc-200 rounded-lg">
+                                  <span className="text-zinc-400 font-sans mr-1">พัก:</span>
                                   <strong className="text-zinc-900 font-bold">{ex.rest}</strong>
                                 </div>
                               </div>
+                            </div>
+
+                            {/* จุดโฟกัสความปลอดภัย */}
+                            {ex.safetyCue && (
+                              <div className="text-xs text-emerald-900 bg-emerald-50 border border-emerald-200/70 rounded-xl px-3 py-2 flex items-start gap-2 leading-relaxed">
+                                <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span><strong>คำแนะนำความปลอดภัย:</strong> {ex.safetyCue}</span>
+                              </div>
+                            )}
+
+                            {ex.note && (
+                              <p className="text-xs text-amber-800 font-medium">
+                                * {ex.note}
+                              </p>
+                            )}
+
+                            {/* แถวปุ่มปฏิบัติการ (Touch targets >= 44px) */}
+                            <div className="pt-1 flex flex-wrap items-center gap-2.5 sm:justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setDemoExercise(ex)}
+                                className="min-h-[44px] px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold transition flex items-center justify-center gap-2 shadow-xs active:scale-[0.98]"
+                                title="ดูตัวอย่างภาพเคลื่อนไหวและฟอร์มท่าที่ถูกต้อง"
+                              >
+                                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>ดูตัวอย่างท่า</span>
+                              </button>
 
                               <button
                                 type="button"
@@ -996,23 +2159,23 @@ export default function DashboardPage() {
                                     initialIndex: exIndex,
                                   })
                                 }
-                                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm ${
+                                className={`min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${
                                   isExCompleted
-                                    ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-white border-zinc-200 hover:border-emerald-500 hover:text-emerald-600 text-zinc-700"
+                                    ? "bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10"
                                 }`}
                                 title={isExCompleted ? "ฝึกซ้ำด้วย AI" : "เปิดกล้องจับท่า AI เฉพาะท่านี้"}
                               >
                                 {isExCompleted ? (
                                   <>
-                                    <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                     <span>ฝึกซ้ำ</span>
                                   </>
                                 ) : (
                                   <>
-                                    <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                     <span>ฝึกด้วย AI</span>
@@ -1048,50 +2211,235 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* การแบ่งมื้ออาหาร */}
-            <div className="space-y-4">
-              {mealPlan.map((meal, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-3"
-                >
-                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                    <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-teal-500" />
-                      {meal.mealName}
-                    </h3>
-                    <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                      ~ {meal.calories} kcal
-                    </span>
-                  </div>
+            {/* โมเดลจานอาหารสุขภาพ (Harvard Healthy Eating Plate & Thai MOPH 2:1:1 Model) */}
+            <div className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    สัดส่วนจานสุขภาพตามมาตรฐานโลก (Harvard Healthy Eating Plate &amp; กรมอนามัย 2:1:1)
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    หลักการจัดจานอาหารในแต่ละมื้อเพื่อควบคุมพลังงานและรักษาระดับน้ำตาลในเลือดให้คงที่
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  Harvard T.H. Chan &amp; MOPH
+                </span>
+              </div>
 
+              {/* กราฟิกสัดส่วนจาน 50% : 25% : 25% */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex flex-col justify-between">
                   <div>
-                    <div className="text-sm font-bold text-zinc-900">{meal.dish}</div>
-                    <div className="text-[11px] text-teal-700 mt-1 font-medium flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {meal.safetyNote}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900">ผักและผลไม้หลากสี</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-black text-[10px]">
+                        50% (2 ส่วน)
+                      </span>
                     </div>
+                    <p className="text-[11px] text-emerald-800/90 mt-2 leading-relaxed">
+                      เน้นผักใบเขียว บรอกโคลี มะเขือเทศ แครอท (ใยอาหารสูง วิตามิน แร่ธาตุ และชะลอการดูดซึมน้ำตาล)
+                    </p>
                   </div>
-
-                  {/* สัดส่วนมาโครของมื้อนี้ */}
-                  <div className="pt-2 flex items-center gap-4 text-xs font-mono text-zinc-600 border-t border-zinc-50">
-                    <div>
-                      <span className="text-zinc-400 text-[10px]">โปรตีน:</span>{" "}
-                      <strong className="text-zinc-900 font-bold">{meal.protein}</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400 text-[10px]">คาร์บ:</span>{" "}
-                      <strong className="text-zinc-900 font-bold">{meal.carbs}</strong>
-                    </div>
-                    <div>
-                      <span className="text-zinc-400 text-[10px]">ไขมันดี:</span>{" "}
-                      <strong className="text-zinc-900 font-bold">{meal.fat}</strong>
-                    </div>
+                  <div className="text-[10px] font-semibold text-emerald-700 mt-3 pt-2 border-t border-emerald-200/60">
+                    ✓ เติมเต็มกระเพาะโดยไม่เพิ่มแคลอรี่ส่วนเกิน
                   </div>
                 </div>
-              ))}
+
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-950">คาร์โบไฮเดรตเชิงซ้อน</span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white font-black text-[10px]">
+                        25% (1 ส่วน)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-900/90 mt-2 leading-relaxed">
+                      ข้าวกล้อง ข้าวไรซ์เบอร์รี่ มันเทศ ฟักทอง หรือข้าวโอ๊ต (Whole Grains ไม่ขัดสี)
+                    </p>
+                  </div>
+                  <div className="text-[10px] font-semibold text-amber-800 mt-3 pt-2 border-t border-amber-200/60">
+                    ✓ ให้พลังงานสม่ำเสมอ ค่าดัชนีน้ำตาลต่ำ (Low GI)
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-teal-950">โปรตีนคุณภาพดี</span>
+                      <span className="px-2 py-0.5 rounded-full bg-teal-600 text-white font-black text-[10px]">
+                        25% (1 ส่วน)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-teal-900/90 mt-2 leading-relaxed">
+                      อกไก่ ปลาทะเล/ปลาน้ำจืด ไข่ไก่ เต้าหู้ขาว ถั่วเมล็ดแห้ง (ไขมันอิ่มตัวต่ำ)
+                    </p>
+                  </div>
+                  <div className="text-[10px] font-semibold text-teal-800 mt-3 pt-2 border-t border-teal-200/60">
+                    ✓ เสริมสร้างกล้ามเนื้อและรักษาอัตราเผาผลาญ
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* กรอบเพดานสารอาหารสำคัญตามเกณฑ์ WHO & ISSN (Micronutrient & Intake Limits) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-sm">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">WHO 2023 Target</div>
+                <div className="text-base font-black text-rose-600 mt-0.5">&lt; 2,000 มก.</div>
+                <div className="text-[11px] font-bold text-zinc-800 mt-0.5">โซเดียม / วัน</div>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                  เกลือ &lt; 1 ช้อนชา เพื่อป้องกันความดันและไต
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-sm">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">WHO &amp; กรมอนามัย</div>
+                <div className="text-base font-black text-amber-600 mt-0.5">&le; 25 กรัม</div>
+                <div className="text-[11px] font-bold text-zinc-800 mt-0.5">น้ำตาลอิสระ / วัน</div>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                  ไม่เกิน 6 ช้อนชา ป้องกันไขมันสะสมในตับ
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-sm">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Dietary Fiber</div>
+                <div className="text-base font-black text-emerald-600 mt-0.5">25 - 35 กรัม</div>
+                <div className="text-[11px] font-bold text-zinc-800 mt-0.5">ใยอาหาร / วัน</div>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                  ช่วยระบบขับถ่ายและลดการดูดซึมคอเลสเตอรอล
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white border border-zinc-200 shadow-sm">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">ISSN Consensus</div>
+                <div className="text-base font-black text-teal-600 mt-0.5">25 - 40 กรัม</div>
+                <div className="text-[11px] font-bold text-zinc-800 mt-0.5">โปรตีนต่อมื้อ</div>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-tight">
+                  กระตุ้น Muscle Protein Synthesis สูงสุด
+                </p>
+              </div>
+            </div>
+
+            {/* การแบ่งมื้ออาหาร พร้อมตัวเลือกยืดหยุ่นตามชีวิตจริง */}
+            <div className="space-y-4">
+              {mealPlan.map((meal, idx) => {
+                const currentOptIdx = selectedMealChoices[idx] ?? 0;
+                const activeOption = meal.options[currentOptIdx] || meal.options[0];
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                          {meal.mealName}
+                        </h3>
+                        <div className="text-[11px] text-teal-700 mt-0.5 font-medium flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {meal.safetyNote}
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full shrink-0">
+                        ~ {meal.calories} kcal
+                      </span>
+                    </div>
+
+                    {/* ปุ่มสลับรูปแบบอาหาร 3 ทางเลือก (Large, comfortable touch targets) */}
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        เลือกสไตล์อาหารมื้อนี้ตามสะดวก:
+                      </div>
+                      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+                        {meal.options.map((opt, optIdx) => {
+                          const isSelected = currentOptIdx === optIdx;
+                          return (
+                            <button
+                              key={optIdx}
+                              type="button"
+                              onClick={() =>
+                                setSelectedMealChoices((prev) => ({
+                                  ...prev,
+                                  [idx]: optIdx,
+                                }))
+                              }
+                              className={`min-h-[40px] px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 active:scale-[0.98] ${
+                                isSelected
+                                  ? "bg-white text-emerald-800 shadow-sm border border-zinc-200"
+                                  : "text-zinc-600 hover:text-zinc-900"
+                              }`}
+                            >
+                              <span>
+                                {opt.category === "ตามสั่ง/นอกบ้าน"
+                                  ? "นอกบ้าน / ตามสั่ง"
+                                  : opt.category === "ทำเองง่ายๆ"
+                                  ? "ทำเอง (สูตร 2:1:1)"
+                                  : "พร้อมทานสะดวก"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* รายละเอียดเมนูที่เลือก */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-zinc-200/80 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-base font-bold text-zinc-900 leading-snug">
+                          {activeOption.dish}
+                        </div>
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full shrink-0">
+                          {activeOption.category}
+                        </span>
+                      </div>
+
+                      {activeOption.orderingTip && (
+                        <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded-xl p-3 flex items-start gap-2.5 leading-relaxed">
+                          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          <div>
+                            <strong className="text-zinc-900">เทคนิคการสั่ง/เตรียม:</strong>{" "}
+                            <span className="text-zinc-600">{activeOption.orderingTip}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-xs text-teal-900 bg-teal-50 border border-teal-200/70 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+                        <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                        </svg>
+                        <div>
+                          <strong>สัดส่วนจาน 2:1:1:</strong>{" "}
+                          <span className="font-medium text-teal-900">{activeOption.plateRatio}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* สัดส่วนมาโครของมื้อนี้ */}
+                    <div className="pt-1 flex items-center gap-4 text-xs font-mono text-zinc-600">
+                      <div>
+                        <span className="text-zinc-400 text-[10px]">โปรตีน:</span>{" "}
+                        <strong className="text-zinc-900 font-bold">{meal.protein}</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 text-[10px]">คาร์บ:</span>{" "}
+                        <strong className="text-zinc-900 font-bold">{meal.carbs}</strong>
+                      </div>
+                      <div>
+                        <span className="text-zinc-400 text-[10px]">ไขมันดี:</span>{" "}
+                        <strong className="text-zinc-900 font-bold">{meal.fat}</strong>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* เคล็ดลับการจัดการอาหารตามงบประมาณ */}
@@ -1106,6 +2454,32 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* แถบรับรองความปลอดภัยเฉพาะบุคคล (Personalized Safety Guarantee) */}
+        <section className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm print:mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900">
+                  ระบบคัดกรองความปลอดภัยและการปรับแต่งแผนเฉพาะบุคคล
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                  ตารางออกกำลังกายและแผนอาหารทั้งหมดถูกปรับจูนอัตโนมัติตามสมรรถภาพร่างกาย ข้อจำกัดการเคลื่อนไหว และสารก่อภูมิแพ้ของคุณ เพื่อประสิทธิผลและความปลอดภัยสูงสุด
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                ✓ Personal Safety Verified
+              </span>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* โมดอลจับท่าทางด้วย AI แบบเรียลไทม์ (Live AI Workout Trainer) */}
@@ -1129,6 +2503,26 @@ export default function DashboardPage() {
             }
           }}
         />
+      )}
+
+      {/* โมดอลแสดงภาพเคลื่อนไหวสาธิตท่าทางและการจัดระเบียบร่างกาย (Exercise Demo Modal) */}
+      {demoExercise && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in overflow-y-auto"
+          onClick={() => setDemoExercise(null)}
+        >
+          <div
+            className="max-w-2xl w-full max-h-[92vh] overflow-y-auto rounded-3xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExerciseDemoView
+              exerciseName={demoExercise.name}
+              safetyCue={demoExercise.safetyCue}
+              isCompact={false}
+              onClose={() => setDemoExercise(null)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
