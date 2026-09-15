@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${promptFont.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground transition-colors duration-200">
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -34,18 +34,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 try {
                   var saved = localStorage.getItem('fitmate_theme');
                   var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  if (saved === 'dark' || (!saved && prefersDark)) {
+                  var isDark = saved === 'dark' || (!saved && prefersDark);
+                  if (isDark) {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.style.colorScheme = 'dark';
                   } else {
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.style.colorScheme = 'light';
                   }
                 } catch(e) {}
+
+                // Global theme toggle function (Single Source of Truth)
+                window.__toggleFitMateTheme = function() {
+                  var root = document.documentElement;
+                  var willBeDark = !root.classList.contains('dark');
+                  if (willBeDark) {
+                    root.classList.add('dark');
+                    root.style.colorScheme = 'dark';
+                    try { localStorage.setItem('fitmate_theme', 'dark'); } catch(err) {}
+                  } else {
+                    root.classList.remove('dark');
+                    root.style.colorScheme = 'light';
+                    try { localStorage.setItem('fitmate_theme', 'light'); } catch(err) {}
+                  }
+                  window.dispatchEvent(new CustomEvent('fitmate-theme-change', { detail: { isDark: willBeDark } }));
+                  return willBeDark;
+                };
               })();
             `,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground transition-colors duration-200">
         {children}
       </body>
     </html>
