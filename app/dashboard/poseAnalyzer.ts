@@ -41,9 +41,16 @@ export interface FormAnalysisResult {
 }
 
 // คำนวณมุม (องศา) ระหว่าง 3 จุด โดยจุด b คือจุดยอดมุม (Vertex)
-export function calculateAngle(a: Landmark, b: Landmark, c: Landmark): number {
+// รองรับพารามิเตอร์ aspectRatio เพื่อให้คำนวณมุมได้แม่นยำ 100% ไม่ว่าจะเป็นหน้าจอแนวนอนหรือแนวตั้ง (Portrait บนมือถือ)
+export function calculateAngle(
+  a: Landmark,
+  b: Landmark,
+  c: Landmark,
+  aspectRatio: number = 1
+): number {
   const radians =
-    Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+    Math.atan2(c.y - b.y, (c.x - b.x) * aspectRatio) -
+    Math.atan2(a.y - b.y, (a.x - b.x) * aspectRatio);
   let angle = Math.abs((radians * 180.0) / Math.PI);
   if (angle > 180.0) {
     angle = 360.0 - angle;
@@ -197,6 +204,7 @@ export class ExerciseTracker {
   private holdStartTimestamp: number | null = null;
   private holdDurationTargetSeconds: number = 20;
   private lastRepTime: number = 0;
+  private aspectRatio: number = 1;
 
   constructor(exerciseName: string, holdSeconds = 20) {
     this.category = detectExerciseCategory(exerciseName);
@@ -214,8 +222,9 @@ export class ExerciseTracker {
   }
 
   // ตรวจสอบความพร้อมของอวัยวะในเฟรมกล้อง
+  // ออกแบบให้รองรับทั้งมือถือ (วางพิงผนัง/โต๊ะในห้องจำกัด) และคอมพิวเตอร์
   public evaluateVisibility(landmarks: Landmark[]): BodyVisibilityStatus {
-    const isVis = (lm?: Landmark, threshold = 0.5) =>
+    const isVis = (lm?: Landmark, threshold = 0.35) =>
       Boolean(lm && (lm.visibility ?? 0) >= threshold);
 
     const nose = landmarks[POSE_INDEX.NOSE];
@@ -233,16 +242,23 @@ export class ExerciseTracker {
     const leftAnkle = landmarks[POSE_INDEX.LEFT_ANKLE];
     const rightAnkle = landmarks[POSE_INDEX.RIGHT_ANKLE];
 
-    const handsVisible = isVis(leftWrist, 0.45) || isVis(rightWrist, 0.45);
-    const feetVisible = isVis(leftAnkle, 0.45) || isVis(rightAnkle, 0.45);
+    const handsVisible = isVis(leftWrist, 0.35) || isVis(rightWrist, 0.35);
+
+    // บนมือถือ: หากผู้ใช้ยืนถอยหลัง แต่ข้อเท้าโดนขอบจอล่างตัดเล็กน้อย (ในห้องพื้นที่จำกัด)
+    // หากเข่าและสะโพกชัดเจน และข้อเท้ามีสัญญาณตรวจจับได้ ถือว่าพร้อมฝึก
+    const anklesDetected = isVis(leftAnkle, 0.3) || isVis(rightAnkle, 0.3);
+    const kneesInSafeZone =
+      (isVis(leftKnee, 0.45) || isVis(rightKnee, 0.45)) &&
+      ((leftKnee && leftKnee.y < 0.9) || (rightKnee && rightKnee.y < 0.9));
+    const feetVisible = anklesDetected || kneesInSafeZone;
 
     const upperBodyInFrame =
-      (isVis(leftShoulder, 0.45) || isVis(rightShoulder, 0.45)) &&
-      (isVis(leftElbow, 0.45) || isVis(rightElbow, 0.45));
+      (isVis(leftShoulder, 0.35) || isVis(rightShoulder, 0.35)) &&
+      (isVis(leftElbow, 0.35) || isVis(rightElbow, 0.35));
 
     const lowerBodyInFrame =
-      (isVis(leftHip, 0.45) || isVis(rightHip, 0.45)) &&
-      (isVis(leftKnee, 0.45) || isVis(rightKnee, 0.45)) &&
+      (isVis(leftHip, 0.35) || isVis(rightHip, 0.35)) &&
+      (isVis(leftKnee, 0.35) || isVis(rightKnee, 0.35)) &&
       feetVisible;
 
     let isReadyForExercise = true;
@@ -264,7 +280,7 @@ export class ExerciseTracker {
         isReadyForExercise = false;
         missingLimbMessage = "กรุณาจัดกล้องให้เห็นตำแหน่งการวิดพื้น";
       }
-    } else if (!isVis(nose, 0.4) && !upperBodyInFrame) {
+    } else if (!isVis(nose, 0.3) && !upperBodyInFrame) {
       isReadyForExercise = false;
       missingLimbMessage = "กำลังค้นหาร่างกาย กรุณายืนให้อยู่ในเฟรมกล้อง";
     }
@@ -279,7 +295,14 @@ export class ExerciseTracker {
     };
   }
 
-  public analyze(landmarks: Landmark[]): FormAnalysisResult {
+  public analyze(
+    landmarks: Landmark[],
+    frameWidth?: number,
+    frameHeight?: number
+  ): FormAnalysisResult {
+    if (frameWidth && frameHeight && frameHeight > 0) {
+      this.aspectRatio = frameWidth / frameHeight;
+    }
     const now = Date.now();
     const vis = this.evaluateVisibility(landmarks);
 
@@ -342,10 +365,10 @@ export class ExerciseTracker {
     let currentHipY = 0.5;
 
     if (leftKneeVis >= rightKneeVis && leftHip && leftKnee && leftAnkle) {
-      kneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+      kneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle, this.aspectRatio);
       currentHipY = leftHip.y;
     } else if (rightHip && rightKnee && rightAnkle) {
-      kneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+      kneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle, this.aspectRatio);
       currentHipY = rightHip.y;
     }
 
@@ -453,7 +476,7 @@ export class ExerciseTracker {
 
     let angle = 90;
     if (shoulder && elbow && wrist) {
-      angle = calculateAngle(shoulder, elbow, wrist);
+      angle = calculateAngle(shoulder, elbow, wrist, this.aspectRatio);
     }
 
     // ตรวจสอบว่าข้อมืออยู่สูงกว่าระดับไหล่/ศีรษะหรือไม่ (Y ค่ายิ่งน้อยแปลว่ายิ่งสูง)
@@ -547,9 +570,9 @@ export class ExerciseTracker {
 
     let elbowAngle = 160;
     if (leftShoulder && leftElbow && leftWrist) {
-      elbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+      elbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist, this.aspectRatio);
     } else if (rightShoulder && rightElbow && rightWrist) {
-      elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+      elbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist, this.aspectRatio);
     }
 
     const TOP_ANGLE = 150;
@@ -643,7 +666,7 @@ export class ExerciseTracker {
 
     let angle = 120;
     if (shoulder && hip && knee) {
-      angle = calculateAngle(shoulder, hip, knee);
+      angle = calculateAngle(shoulder, hip, knee, this.aspectRatio);
     }
 
     const REST_ANGLE = 125;

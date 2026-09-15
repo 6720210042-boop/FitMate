@@ -125,6 +125,28 @@ export default function LiveWorkoutTrainer({
   // หน้าต่างสาธิตท่าเคลื่อนไหวเคียงข้างกล้อง (Side-by-side Demo PiP)
   const [showDemoPiP, setShowDemoPiP] = useState(true);
 
+  // ควบคุมกล้องและการรองรับมือถือ (Mobile Camera & Device Optimization)
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // ตรวจสอบว่าเปิดจากอุปกรณ์พกพาหรือไม่
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const mobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 768;
+      setIsMobileDevice(mobile);
+    }
+  }, []);
+
+  // สลับกล้องหน้า/หลัง
+  const handleToggleCamera = useCallback(() => {
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  }, []);
+
   // การวิเคราะห์ฟอร์มแบบเรียลไทม์
   const trackerRef = useRef<ExerciseTracker | null>(null);
   const initialCriteria = getExerciseCriteria(currentExercise?.name || "");
@@ -285,9 +307,11 @@ export default function LiveWorkoutTrainer({
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // โหมดกระจกเงา (Mirror mode)
-      ctx.scale(-1, 1);
-      ctx.translate(-canvas.width, 0);
+      // โหมดกระจกเงา (Mirror mode) - ทำเฉพาะกล้องหน้า (user) หากเป็นกล้องหลัง (environment) จะไม่กลับด้าน
+      if (facingMode === "user") {
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+      }
 
       // วาดเฟรมวิดีโอ
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -316,7 +340,7 @@ export default function LiveWorkoutTrainer({
         connections.forEach(([i, j]) => {
           const pt1 = landmarks[i];
           const pt2 = landmarks[j];
-          if (pt1 && pt2 && (pt1.visibility ?? 1) > 0.45 && (pt2.visibility ?? 1) > 0.45) {
+          if (pt1 && pt2 && (pt1.visibility ?? 1) > 0.35 && (pt2.visibility ?? 1) > 0.35) {
             ctx.beginPath();
             ctx.moveTo(pt1.x * canvas.width, pt1.y * canvas.height);
             ctx.lineTo(pt2.x * canvas.width, pt2.y * canvas.height);
@@ -326,7 +350,7 @@ export default function LiveWorkoutTrainer({
 
         // วาดจุดข้อต่อ (Joints)
         landmarks.forEach((lm) => {
-          if ((lm.visibility ?? 1) > 0.45) {
+          if ((lm.visibility ?? 1) > 0.35) {
             ctx.beginPath();
             ctx.arc(lm.x * canvas.width, lm.y * canvas.height, 6, 0, 2 * Math.PI);
             ctx.fillStyle = "#38bdf8"; // ฟ้าเรืองแสง
@@ -339,7 +363,9 @@ export default function LiveWorkoutTrainer({
 
         // ส่งให้ PoseTracker วิเคราะห์เฉพาะเมื่อไม่ได้อยู่ในช่วงพัก หรือช่วงเตรียมตัว
         if (!isResting && getReadyCountdown === null && trackerRef.current) {
-          const res = trackerRef.current.analyze(landmarks);
+          const frameW = video.videoWidth || canvas.width;
+          const frameH = video.videoHeight || canvas.height;
+          const res = trackerRef.current.analyze(landmarks, frameW, frameH);
           setFeedback(res);
 
           // เมื่อทำท่าถูกต้องและนับครั้งเพิ่ม
@@ -364,10 +390,10 @@ export default function LiveWorkoutTrainer({
 
       ctx.restore();
     },
-    [isResting, getReadyCountdown, targetReps, triggerRestPeriod]
+    [isResting, getReadyCountdown, targetReps, triggerRestPeriod, facingMode]
   );
 
-  // โหลด MediaPipe Pose และเชื่อมต่อ Webcam
+  // โหลด MediaPipe Pose และเชื่อมต่อกล้อง (รองรับทั้งมือถือ iOS/Android และ Desktop)
   useEffect(() => {
     interface PoseEngine {
       setOptions: (opts: Record<string, unknown>) => void;
@@ -376,13 +402,8 @@ export default function LiveWorkoutTrainer({
       close: () => void;
     }
 
-    interface CameraEngine {
-      start: () => Promise<void>;
-      stop: () => void;
-    }
-
-    let cameraInstance: CameraEngine | null = null;
     let poseInstance: PoseEngine | null = null;
+    let animFrameId: number | null = null;
     let isCancelled = false;
 
     // ฟังก์ชันโหลด External Script แบบ Asynchronous
@@ -401,36 +422,44 @@ export default function LiveWorkoutTrainer({
       });
     };
 
-    const initMediaPipe = async () => {
+    const startCameraAndPose = async () => {
       try {
         setCameraReady(false);
         setCameraError(null);
 
-        // 1. โหลด MediaPipe Pose & Camera Utils จาก CDN
-        await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
+        // หยุด Stream เดิมก่อนหากมี (เมื่อสลับกล้อง)
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+          mediaStreamRef.current = null;
+        }
+
+        // 1. โหลด MediaPipe Pose จาก CDN
         await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js");
 
         if (isCancelled) return;
 
         const win = window as unknown as {
           Pose: new (opts: { locateFile: (file: string) => string }) => PoseEngine;
-          Camera: new (
-            el: HTMLVideoElement,
-            opts: { onFrame: () => Promise<void>; width: number; height: number }
-          ) => CameraEngine;
         };
 
-        if (!win.Pose || !win.Camera) {
+        if (!win.Pose) {
           throw new Error("ไม่สามารถโหลดไลบรารีตรวจจับโครงกระดูกได้");
         }
 
         // 2. สร้างอินสแตนซ์ Pose
+        // บนมือถือ ใช้ modelComplexity: 0 (Lite) เพื่อให้ได้เฟรมเรต 30 FPS และประหยัดแบตเตอรี่
+        // บนคอมพิวเตอร์ ใช้ modelComplexity: 1 (Full) เพื่อความแม่นยำสูง
+        const isMobile =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ) || window.innerWidth < 768;
+
         const pose = new win.Pose({
           locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
 
         pose.setOptions({
-          modelComplexity: 1,
+          modelComplexity: isMobile ? 0 : 1,
           smoothLandmarks: true,
           enableSegmentation: false,
           minDetectionConfidence: 0.5,
@@ -440,22 +469,85 @@ export default function LiveWorkoutTrainer({
         pose.onResults(handlePoseResults);
         poseInstance = pose;
 
-        // 3. เริ่มต้น Webcam
-        if (videoRef.current) {
-          const camera = new win.Camera(videoRef.current, {
-            onFrame: async () => {
-              if (videoRef.current && poseInstance && !isCancelled) {
-                await poseInstance.send({ image: videoRef.current });
-              }
-            },
-            width: 640,
-            height: 480,
-          });
-
-          await camera.start();
-          cameraInstance = camera;
-          setCameraReady(true);
+        // 3. เริ่มต้นเปิดกล้องผ่าน getUserMedia ที่ปรับแต่งสำหรับมือถือโดยเฉพาะ
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("เบราว์เซอร์นี้ไม่รองรับการเข้าถึงกล้อง (WebRTC MediaDevices)");
         }
+
+        const video = videoRef.current;
+        if (!video) return;
+
+        // ป้องกัน WebKit / iOS Safari หยุดการเล่นวิดีโอ
+        video.setAttribute("playsinline", "true");
+        video.setAttribute("webkit-playsinline", "true");
+        video.muted = true;
+
+        let stream: MediaStream | null = null;
+        try {
+          // ลองเปิดกล้องตาม facingMode ที่ผู้ใช้เลือก (user = กล้องหน้า, environment = กล้องหลัง)
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: isMobile ? 480 : 640 },
+              height: { ideal: isMobile ? 640 : 480 },
+            },
+            audio: false,
+          });
+        } catch (firstErr) {
+          console.warn("Retrying camera with fallback constraints:", firstErr);
+          // Fallback หากอุปกรณ์หรือเบราว์เซอร์ไม่รองรับ constraint ที่เข้มงวด
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+
+        if (isCancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        mediaStreamRef.current = stream;
+        video.srcObject = stream;
+
+        // รอจนวิดีโอพร้อมเล่น
+        await new Promise<void>((resolve) => {
+          if (video.readyState >= 2) {
+            resolve();
+          } else {
+            video.onloadeddata = () => resolve();
+          }
+        });
+
+        await video.play();
+        setCameraReady(true);
+
+        // 4. ลูปประมวลผลเฟรมวิดีโอด้วย requestAnimationFrame พร้อม Frame-Drop Guard
+        // ป้องกันการสะสมของคิวเฟรมบนมือถือ ทำให้การตรวจจับเรียลไทม์ไม่มีดีเลย์
+        let isProcessing = false;
+        const processFrame = async () => {
+          if (isCancelled) return;
+          if (
+            !isProcessing &&
+            videoRef.current &&
+            videoRef.current.readyState >= 2 &&
+            poseInstance
+          ) {
+            isProcessing = true;
+            try {
+              await poseInstance.send({ image: videoRef.current });
+            } catch (err) {
+              console.warn("Frame send error:", err);
+            } finally {
+              isProcessing = false;
+            }
+          }
+          if (!isCancelled) {
+            animFrameId = requestAnimationFrame(processFrame);
+          }
+        };
+
+        animFrameId = requestAnimationFrame(processFrame);
       } catch (err: unknown) {
         console.error("Camera / MediaPipe init error:", err);
         const errMsg = err instanceof Error ? err.message : "ไม่สามารถเปิดกล้องได้";
@@ -465,16 +557,16 @@ export default function LiveWorkoutTrainer({
       }
     };
 
-    initMediaPipe();
+    startCameraAndPose();
 
     return () => {
       isCancelled = true;
-      if (cameraInstance) {
-        try {
-          cameraInstance.stop();
-        } catch {
-          // ignore
-        }
+      if (animFrameId !== null) {
+        cancelAnimationFrame(animFrameId);
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
       }
       if (poseInstance) {
         try {
@@ -484,7 +576,7 @@ export default function LiveWorkoutTrainer({
         }
       }
     };
-  }, [handlePoseResults]);
+  }, [facingMode, handlePoseResults]);
 
   // ฟังก์ชันช่วยเหลือสำหรับทดสอบจำลอง (Simulation) กรณีไม่มีกล้อง
   const handleSimulateRep = (isCorrect: boolean) => {
@@ -522,22 +614,29 @@ export default function LiveWorkoutTrainer({
 
   return (
     <div className="fixed inset-0 z-50 bg-zinc-950 text-white flex flex-col font-sans overflow-hidden">
-      {/* ซ่อนวิดีโอดิบ เราใช้ Canvas แสดงผลแทนเพื่อการ Flip กระจกและวาด Skeleton */}
-      <video ref={videoRef} className="hidden" playsInline muted autoPlay />
+      {/* วิดีโอพื้นหลังแบบ offscreen สำหรับให้อินจิ้น AI ถอดรหัสเฟรม (ไม่ใช้ display:none เพื่อป้องกัน Safari WebKit หยุดประมวลผล) */}
+      <video
+        ref={videoRef}
+        className="fixed pointer-events-none opacity-0 -z-50 w-px h-px"
+        playsInline
+        webkit-playsinline="true"
+        muted
+        autoPlay
+      />
 
       {/* ==============================================================
           แถบ Header ด้านบน (ชื่อวันฝึก, ท่าปัจจุบัน, เกณฑ์, ปุ่มออกจากโหมด)
          ============================================================== */}
-      <header className="px-5 py-3.5 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-black">
+      <header className="px-3 sm:px-5 py-2.5 sm:py-3.5 bg-zinc-900/90 backdrop-blur border-b border-zinc-800 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-black text-xs sm:text-sm">
             AI
           </div>
           <div>
-            <div className="text-[11px] text-zinc-400 font-medium">{dayTitle}</div>
-            <div className="text-sm font-black text-white flex items-center gap-2">
-              <span>{currentExercise?.name}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <div className="text-[10px] sm:text-[11px] text-zinc-400 font-medium truncate max-w-[120px] sm:max-w-none">{dayTitle}</div>
+            <div className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 sm:gap-2">
+              <span className="truncate max-w-[130px] sm:max-w-none">{currentExercise?.name}</span>
+              <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 {currentExercise?.tag}
               </span>
             </div>
@@ -545,7 +644,7 @@ export default function LiveWorkoutTrainer({
         </div>
 
         {/* ไอคอนสถานะการตรวจจับอวัยวะ (Body Limb Status Indicators) */}
-        <div className="hidden md:flex items-center gap-2 bg-zinc-800/80 px-3 py-1.5 rounded-2xl border border-zinc-700/60 text-xs">
+        <div className="hidden lg:flex items-center gap-2 bg-zinc-800/80 px-3 py-1.5 rounded-2xl border border-zinc-700/60 text-xs">
           <span className="text-zinc-400 font-bold text-[11px] mr-1">สถานะกล้อง:</span>
 
           {/* มือและแขน */}
@@ -575,12 +674,27 @@ export default function LiveWorkoutTrainer({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* ปุ่มสลับกล้องหน้า/กล้องหลัง (เหมาะสำหรับมือถือ) */}
+          <button
+            type="button"
+            onClick={handleToggleCamera}
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 border border-zinc-700 transition active:scale-95 shadow"
+            title="สลับกล้องหน้า/กล้องหลัง (Front/Back Camera)"
+          >
+            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="text-[11px] sm:text-xs">
+              {facingMode === "user" ? "กล้องหน้า" : "กล้องหลัง"}
+            </span>
+          </button>
+
           {/* ปุ่ม Mute / Unmute */}
           <button
             type="button"
             onClick={handleToggleMute}
-            className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
+            className="p-1.5 sm:p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition"
             title={isMuted ? "เปิดเสียง" : "ปิดเสียง"}
           >
             {isMuted ? (
@@ -626,9 +740,9 @@ export default function LiveWorkoutTrainer({
                 setCurrentReps(0);
                 trackerRef.current?.resetState();
               }}
-              className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 border border-zinc-700 transition"
+              className="hidden sm:inline-flex px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 border border-zinc-700 transition"
             >
-              ข้ามไปท่าถัดไป &rarr;
+              ข้าม &rarr;
             </button>
           )}
 
@@ -636,7 +750,7 @@ export default function LiveWorkoutTrainer({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition"
+            className="p-1.5 sm:p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition"
             title="ออกจากโหมดฝึก"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,23 +767,48 @@ export default function LiveWorkoutTrainer({
         {/* Canvas แสดงผลกล้องและ Skeleton */}
         <canvas ref={canvasRef} className="max-w-full max-h-full object-contain rounded-2xl" />
 
+        {/* ข้อความแนะนำสำหรับมือถือ */}
+        {isMobileDevice && cameraReady && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-zinc-900/80 backdrop-blur border border-zinc-700/60 text-[10px] text-emerald-300 font-medium whitespace-nowrap shadow pointer-events-none">
+            📱 วางมือถือห่าง 1.5 - 2 ม. ให้เห็นสะโพกและเข่า
+          </div>
+        )}
+
         {/* กรณีกล้องติดปัญหา Permission หรืออุปกรณ์ไม่มีกล้อง */}
         {cameraError && (
-          <div className="absolute inset-0 z-30 bg-zinc-950/90 backdrop-blur p-6 flex flex-col items-center justify-center text-center max-w-lg mx-auto">
-            <div className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="absolute inset-0 z-30 bg-zinc-950/95 backdrop-blur p-5 sm:p-6 flex flex-col items-center justify-center text-center max-w-lg mx-auto overflow-y-auto">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mb-3 sm:mb-4">
+              <svg className="w-7 h-7 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">ไม่สามารถเข้าถึงกล้องเว็บแคมได้</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-6">{cameraError}</p>
-            <div className="space-y-2 w-full">
+            <h3 className="text-base sm:text-lg font-bold text-white mb-2">ไม่สามารถเข้าถึงกล้องได้</h3>
+            <p className="text-xs text-zinc-400 leading-relaxed mb-4 max-w-sm">{cameraError}</p>
+
+            <div className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl p-3 text-left text-[11px] text-zinc-300 mb-4 space-y-1.5">
+              <div className="font-bold text-emerald-400">💡 เคล็ดลับการเปิดกล้องบนมือถือ:</div>
+              <div>• <strong>iOS (iPhone/iPad):</strong> เข้า การตั้งค่า &gt; Safari &gt; กล้อง และเลือก "อนุญาต"</div>
+              <div>• <strong>Android:</strong> แตะไอคอนแม่กุญแจหน้า URL ใน Chrome &gt; การตั้งค่าไซต์ &gt; อนุญาตกล้อง</div>
+              <div>• หากเปิดผ่าน IP วงแลน (เช่น http://192.168.x.x) เบราว์เซอร์มือถือจะบล็อกกล้องเพื่อความปลอดภัย แนะนำให้ทดสอบผ่าน localhost หรือตั้งค่า HTTPS</div>
+            </div>
+
+            <div className="space-y-2 w-full max-w-xs">
               <button
                 type="button"
-                onClick={() => setCameraError(null)}
+                onClick={() => {
+                  setCameraError(null);
+                  setCameraReady(false);
+                }}
                 className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-lg transition"
               >
                 ลองเชื่อมต่อกล้องใหม่อีกครั้ง
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleCamera}
+                className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs border border-zinc-700 transition"
+              >
+                สลับไปใช้ {facingMode === "user" ? "กล้องหลัง" : "กล้องหน้า"}
               </button>
               <button
                 type="button"
@@ -677,7 +816,7 @@ export default function LiveWorkoutTrainer({
                   setCameraError(null);
                   setCameraReady(true);
                 }}
-                className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs transition"
+                className="w-full py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-bold text-[11px] transition"
               >
                 เปิดโหมดทดสอบจำลอง (Simulation Mode)
               </button>
@@ -687,59 +826,70 @@ export default function LiveWorkoutTrainer({
 
         {/* Loading Overlay */}
         {!cameraReady && !cameraError && (
-          <div className="absolute inset-0 z-20 bg-zinc-950 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <div className="absolute inset-0 z-20 bg-zinc-950 flex flex-col items-center justify-center text-center p-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
             <div className="text-sm font-bold text-white">กำลังเปิดกล้องและเชื่อมต่อ AI Pose Detection...</div>
             <p className="text-xs text-zinc-400 mt-1">กรุณากดอนุญาตให้สิทธิ์การใช้งานกล้องในเบราว์เซอร์</p>
           </div>
         )}
 
         {/* HUD ด้านซ้ายบน: การนับเซ็ต และนับครั้ง */}
-        <div className="absolute top-5 left-5 z-20 flex flex-col gap-3">
+        <div className="absolute top-3 sm:top-5 left-3 sm:left-5 z-20 flex flex-col gap-2 sm:gap-3">
           {/* การ์ดเซ็ต */}
-          <div className="p-4 rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl min-w-[150px]">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl min-w-[105px] sm:min-w-[150px]">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
               เซ็ตปัจจุบัน
             </div>
-            <div className="text-2xl font-black text-white mt-0.5">
-              {currentSet} <span className="text-sm text-zinc-500 font-medium">/ {totalSets}</span>
+            <div className="text-xl sm:text-2xl font-black text-white mt-0.5">
+              {currentSet} <span className="text-xs sm:text-sm text-zinc-500 font-medium">/ {totalSets}</span>
             </div>
           </div>
 
           {/* การ์ดจำนวนครั้ง (Reps Counter) */}
-          <div className="p-4 rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl min-w-[150px]">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+          <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl min-w-[105px] sm:min-w-[150px]">
+            <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-400">
               {parsedPlan.isHold ? "เวลาที่ค้างได้" : "จำนวนครั้ง (REPS)"}
             </div>
-            <div className="text-4xl font-black text-emerald-400 mt-0.5">
+            <div className="text-2xl sm:text-4xl font-black text-emerald-400 mt-0.5">
               {currentReps}{" "}
-              <span className="text-lg text-zinc-500 font-medium">/ {targetReps}</span>
+              <span className="text-sm sm:text-lg text-zinc-500 font-medium">/ {targetReps}</span>
             </div>
-            <div className="text-[10px] text-zinc-400 mt-1 font-mono">{parsedPlan.displayText}</div>
+            <div className="text-[9px] sm:text-[10px] text-zinc-400 mt-0.5 font-mono truncate max-w-[110px] sm:max-w-none">{parsedPlan.displayText}</div>
           </div>
 
-          {/* ปุ่มจำลองสำหรับทดสอบ (Simulation Controls) */}
-          <div className="p-3 rounded-2xl bg-zinc-900/70 backdrop-blur border border-zinc-800/60 text-[10px] text-zinc-400 space-y-1.5 max-w-[160px]">
-            <div className="font-bold text-zinc-300">ทดสอบจำลอง (Test):</div>
+          {/* ปุ่มจำลองสำหรับทดสอบ (พับเก็บได้ เพื่อไม่ให้บดบังจอมือถือ) */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => handleSimulateRep(true)}
-              className="w-full py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition shadow"
+              onClick={() => setIsSimulationOpen((prev) => !prev)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900/85 backdrop-blur border border-zinc-700/70 text-[10px] sm:text-[11px] font-bold text-zinc-300 hover:bg-zinc-800 transition flex items-center gap-1.5 shadow"
             >
-              +1 ครั้ง (ผ่านเกณฑ์)
+              <span>🧪 ทดสอบ</span>
+              <span className="text-[8px] text-zinc-400">{isSimulationOpen ? "▲" : "▼"}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => handleSimulateRep(false)}
-              className="w-full py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] transition shadow"
-            >
-              ทดสอบท่าผิด (ไม่ผ่าน)
-            </button>
+            {isSimulationOpen && (
+              <div className="absolute top-full left-0 mt-1.5 p-2 rounded-xl bg-zinc-900/95 backdrop-blur border border-zinc-700/80 text-[10px] space-y-1.5 w-32 sm:w-36 shadow-2xl z-30 animate-fade-in">
+                <button
+                  type="button"
+                  onClick={() => handleSimulateRep(true)}
+                  className="w-full py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] transition shadow"
+                >
+                  +1 ครั้ง (ผ่าน)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateRep(false)}
+                  className="w-full py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[10px] transition shadow"
+                >
+                  ทดสอบไม่ผ่าน
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* HUD ตรงกลางบน: การ์ดแสดงเกณฑ์การผ่านของท่านั้นอย่างชัดเจน (ตามคำขอ) */}
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-20 max-w-md w-full px-4 hidden sm:block">
+        {/* HUD ตรงกลางบน: การ์ดแสดงเกณฑ์การผ่านของท่านั้นอย่างชัดเจน */}
+        <div className="absolute top-3 sm:top-5 left-1/2 -translate-x-1/2 z-20 max-w-md w-full px-4 hidden md:block">
           <div className="p-3.5 rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-700/70 shadow-xl text-center space-y-1">
             <div className="flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -758,15 +908,15 @@ export default function LiveWorkoutTrainer({
         </div>
 
         {/* HUD ด้านขวา: แถบวัดความลึกและจุดเกณฑ์ผ่าน (Target Threshold Gauge) */}
-        <div className="absolute top-5 right-5 z-20 flex flex-col items-center">
-          <div className="p-4 rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl flex flex-col items-center w-28">
-            <div className="text-[10px] font-bold text-zinc-400 mb-2">เกจวัดความลึก</div>
+        <div className="absolute top-3 sm:top-5 right-3 sm:right-5 z-20 flex flex-col items-center">
+          <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-900/85 backdrop-blur border border-zinc-800 shadow-xl flex flex-col items-center w-20 sm:w-28">
+            <div className="text-[9px] sm:text-[10px] font-bold text-zinc-400 mb-1.5 sm:mb-2">ความลึก</div>
 
             {/* แถบ Progress แนวตั้ง พร้อมมาร์กเกอร์จุดผ่าน */}
-            <div className="relative w-6 h-48 bg-zinc-800 rounded-full overflow-hidden flex flex-col-reverse p-0.5 border border-zinc-700">
+            <div className="relative w-5 sm:w-6 h-32 sm:h-48 bg-zinc-800 rounded-full overflow-hidden flex flex-col-reverse p-0.5 border border-zinc-700">
               {/* เส้นมาร์กเกอร์จุดผ่าน (Target Marker Line) */}
               <div
-                className="absolute w-full h-[3px] bg-white shadow-[0_0_8px_#ffffff] z-10"
+                className="absolute w-full h-[2px] sm:h-[3px] bg-white shadow-[0_0_8px_#ffffff] z-10"
                 style={{ bottom: "85%" }}
                 title="จุดผ่านเกณฑ์ 100%"
               />
@@ -785,15 +935,15 @@ export default function LiveWorkoutTrainer({
             </div>
 
             {/* ข้อความสถานะเมื่อแตะจุดผ่าน */}
-            <div className="text-xs font-black font-mono mt-2 text-white flex items-center gap-1">
+            <div className="text-[11px] sm:text-xs font-black font-mono mt-1.5 sm:mt-2 text-white flex items-center gap-1">
               <span>{feedback.progressPercent}%</span>
               {feedback.progressPercent >= 90 && (
-                <span className="text-[9px] text-emerald-400 font-bold">✓ ผ่าน</span>
+                <span className="text-[8px] sm:text-[9px] text-emerald-400 font-bold">✓ ผ่าน</span>
               )}
             </div>
 
             {feedback.currentAngle > 0 && (
-              <div className="text-[10px] font-mono text-zinc-400 mt-0.5">
+              <div className="text-[9px] sm:text-[10px] font-mono text-zinc-400 mt-0.5">
                 {feedback.currentAngle}°
               </div>
             )}
@@ -801,9 +951,9 @@ export default function LiveWorkoutTrainer({
         </div>
 
         {/* HUD ตรงกลางล่าง: กล่องแจ้งเตือนความถูกต้องของท่า (Real-time Form Feedback) */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-11/12 max-w-xl">
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 w-[94%] sm:w-11/12 max-w-xl">
           <div
-            className={`p-4 rounded-3xl backdrop-blur-md border shadow-2xl transition-all duration-300 text-center ${
+            className={`p-3 sm:p-4 rounded-2xl sm:rounded-3xl backdrop-blur-md border shadow-2xl transition-all duration-300 text-center ${
               feedback.feedbackStatus === "correct"
                 ? "bg-emerald-950/85 border-emerald-500 text-emerald-100 ring-2 ring-emerald-500/40 animate-pulse"
                 : feedback.feedbackStatus === "warning"
@@ -818,12 +968,12 @@ export default function LiveWorkoutTrainer({
               {feedback.feedbackStatus === "warning" && (
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
               )}
-              <h3 className="text-base sm:text-lg font-black tracking-wide">
+              <h3 className="text-sm sm:text-lg font-black tracking-wide">
                 {feedback.message}
               </h3>
             </div>
             {feedback.subMessage && (
-              <p className="text-xs text-zinc-300 font-medium opacity-90">
+              <p className="text-[11px] sm:text-xs text-zinc-300 font-medium opacity-90">
                 {feedback.subMessage}
               </p>
             )}
