@@ -43,11 +43,23 @@ export default function LoginPage() {
           accounts = [];
         }
 
-        const found = accounts.find((a) => a.email === normalizedEmail);
+        const found = accounts.find((a) => a.email === normalizedEmail) as any;
         if (found) {
+          if (found.status === "suspended") {
+            setIsLoading(false);
+            setErrorMessage("บัญชีของคุณถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ");
+            return;
+          }
+
           if (found.password === password) {
             matchedName = found.name;
             isAuthenticated = true;
+            // อัปเดต lastLogin
+            found.lastLogin = new Date().toISOString();
+            if (!found.role) {
+              found.role = normalizedEmail === "pathomphon7n@gmail.com" ? "admin" : "user";
+            }
+            localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
           } else {
             setIsLoading(false);
             setErrorMessage("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
@@ -66,9 +78,15 @@ export default function LoginPage() {
 
         let hasAssessment = false;
         if (typeof window !== "undefined") {
+          const isAdmin = normalizedEmail === "pathomphon7n@gmail.com" || normalizedEmail.startsWith("admin@");
           localStorage.setItem(
             "fitmate_user",
-            JSON.stringify({ email: normalizedEmail, name: matchedName, loggedIn: true })
+            JSON.stringify({
+              email: normalizedEmail,
+              name: matchedName,
+              role: isAdmin ? "admin" : "user",
+              loggedIn: true,
+            })
           );
           hasAssessment = !!localStorage.getItem("fitmate_assessment");
         }

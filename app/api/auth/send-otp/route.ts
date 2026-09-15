@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { setOtp } from "@/lib/otpStore";
+import { addAuditLog } from "@/lib/auditLog";
 
 export async function POST(request: Request) {
   try {
@@ -108,12 +109,29 @@ export async function POST(request: Request) {
     console.log(`[FitMate Mailer] Successfully sent real OTP email to: ${normalizedEmail}`);
     console.log(`[FitMate Mailer OTP]: ${otp} sent to ${normalizedEmail}`);
 
+    addAuditLog({
+      type: "OTP_REQUEST",
+      email: normalizedEmail,
+      action: "ร้องขอรหัส OTP รีเซ็ตรหัสผ่าน",
+      status: "SUCCESS",
+      details: "ส่งเมลสำเร็จผ่าน SMTP (ปิดบังรหัส OTP ตามมาตรฐานความปลอดภัย)",
+    });
+
     return NextResponse.json({
       success: true,
       message: `ส่งรหัสยืนยันไปยังอีเมล ${normalizedEmail} เรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย`,
     });
   } catch (error: any) {
     console.error("[FitMate Mailer Error]:", error);
+
+    addAuditLog({
+      type: "OTP_REQUEST",
+      email: (error?.email || "unknown").toString(),
+      action: "ร้องขอรหัส OTP รีเซ็ตรหัสผ่าน",
+      status: "FAILED",
+      details: error?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อระบบส่งอีเมล",
+    });
+
     return NextResponse.json(
       {
         success: false,

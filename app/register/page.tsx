@@ -55,7 +55,15 @@ export default function RegisterPage() {
     setTimeout(() => {
       // ตรวจสอบและบันทึกข้อมูลบัญชีลงใน localStorage (fitmate_accounts)
       if (typeof window !== "undefined") {
-        let accounts: Array<{ name: string; email: string; password: string }> = [];
+        let accounts: Array<{
+          name: string;
+          email: string;
+          password: string;
+          role?: string;
+          status?: string;
+          createdAt?: string;
+          lastLogin?: string;
+        }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
           if (stored) accounts = JSON.parse(stored);
@@ -70,10 +78,15 @@ export default function RegisterPage() {
           return;
         }
 
+        const isAdmin = normalizedEmail === "pathomphon7n@gmail.com" || normalizedEmail.startsWith("admin@");
         accounts.push({
           name: trimmedName,
           email: normalizedEmail,
           password,
+          role: isAdmin ? "admin" : "user",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
         });
         localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
 
@@ -81,6 +94,7 @@ export default function RegisterPage() {
         const userProfile = {
           name: trimmedName,
           email: normalizedEmail,
+          role: isAdmin ? "admin" : "user",
           loggedIn: true,
         };
         localStorage.setItem("fitmate_user", JSON.stringify(userProfile));
