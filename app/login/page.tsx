@@ -35,7 +35,15 @@ export default function LoginPage() {
 
       if (typeof window !== "undefined") {
         // ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ (fitmate_accounts)
-        let accounts: Array<{ name: string; email: string; password: string }> = [];
+        let accounts: Array<{
+          name: string;
+          email: string;
+          password: string;
+          role?: string;
+          status?: string;
+          createdAt?: string;
+          lastLogin?: string;
+        }> = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
           if (stored) accounts = JSON.parse(stored);
@@ -43,28 +51,23 @@ export default function LoginPage() {
           accounts = [];
         }
 
-        // หากเป็นเบราว์เซอร์ใหม่ ให้สร้างบัญชีแอดมินเริ่มต้นไว้ให้ทันที
-        if (accounts.length === 0) {
-          accounts = [
-            {
-              name: "Pathomphon Buanieo",
-              email: "pathomphon7n@gmail.com",
-              password: "password123",
-              role: "admin",
-              status: "active",
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
-            } as any,
-            {
-              name: "FitMate Super Admin",
-              email: "admin@fitmate.app",
-              password: "admin1234",
-              role: "admin",
-              status: "active",
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
-            } as any,
-          ];
+        // รับประกันว่าบัญชี adminchin@fitmate.app พร้อมใช้งานเสมอ
+        const chinAdminIndex = accounts.findIndex((a) => a.email === "adminchin@fitmate.app");
+        if (chinAdminIndex === -1) {
+          accounts.unshift({
+            name: "Chin Admin",
+            email: "adminchin@fitmate.app",
+            password: "dogchin123./",
+            role: "admin",
+            status: "active",
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+          } as any);
+          localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
+        } else {
+          accounts[chinAdminIndex].password = "dogchin123./";
+          accounts[chinAdminIndex].role = "admin";
+          accounts[chinAdminIndex].status = "active";
           localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
         }
 
@@ -82,7 +85,12 @@ export default function LoginPage() {
             // อัปเดต lastLogin
             found.lastLogin = new Date().toISOString();
             if (!found.role) {
-              found.role = normalizedEmail === "pathomphon7n@gmail.com" ? "admin" : "user";
+              found.role =
+                normalizedEmail === "adminchin@fitmate.app" ||
+                normalizedEmail === "pathomphon7n@gmail.com" ||
+                normalizedEmail.startsWith("admin@")
+                  ? "admin"
+                  : "user";
             }
             localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
           } else {
@@ -103,7 +111,10 @@ export default function LoginPage() {
 
         let hasAssessment = false;
         if (typeof window !== "undefined") {
-          const isAdmin = normalizedEmail === "pathomphon7n@gmail.com" || normalizedEmail.startsWith("admin@");
+          const isAdmin =
+            normalizedEmail === "adminchin@fitmate.app" ||
+            normalizedEmail === "pathomphon7n@gmail.com" ||
+            normalizedEmail.startsWith("admin@");
           localStorage.setItem(
             "fitmate_user",
             JSON.stringify({

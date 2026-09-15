@@ -78,7 +78,10 @@ export default function RegisterPage() {
           return;
         }
 
-        const isAdmin = normalizedEmail === "pathomphon7n@gmail.com" || normalizedEmail.startsWith("admin@");
+        const isAdmin =
+          normalizedEmail === "adminchin@fitmate.app" ||
+          normalizedEmail === "pathomphon7n@gmail.com" ||
+          normalizedEmail.startsWith("admin@");
         accounts.push({
           name: trimmedName,
           email: normalizedEmail,

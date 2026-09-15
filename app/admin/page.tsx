@@ -93,18 +93,18 @@ export default function AdminDashboardPage() {
         }
       }
 
-      // หากยังไม่มีบัญชี แอดมินตั้งต้น ให้สร้างตัวอย่างเพื่อให้พร้อมบริหารจัดการ
-      if (loadedAccounts.length === 0) {
-        loadedAccounts = [
-          {
-            name: "Pathomphon Buanieo",
-            email: "pathomphon7n@gmail.com",
-            role: "admin",
-            status: "active",
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-          },
-        ];
+      // ตรวจสอบและสร้างบัญชี adminchin@fitmate.app เป็นแอดมินหลัก
+      const chinIdx = loadedAccounts.findIndex((a) => a.email === "adminchin@fitmate.app");
+      if (chinIdx === -1) {
+        loadedAccounts.unshift({
+          name: "Chin Admin",
+          email: "adminchin@fitmate.app",
+          password: "dogchin123./",
+          role: "admin",
+          status: "active",
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+        });
         localStorage.setItem("fitmate_accounts", JSON.stringify(loadedAccounts));
       }
       setAccounts(loadedAccounts);
@@ -313,7 +313,7 @@ export default function AdminDashboardPage() {
           <div className="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-300">เข้าสู่ระบบโดย:</span>
-            <strong className="text-emerald-300">{currentUser?.email || "pathomphon7n@gmail.com"}</strong>
+            <strong className="text-emerald-300">{currentUser?.email || "adminchin@fitmate.app"}</strong>
           </div>
 
           <Link
