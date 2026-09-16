@@ -1,0 +1,21 @@
+# ==============================================================================
+# Template compose.yml สำหรับโปรเจกต์ของเพื่อน (รันบน VPS เครื่องเดียวกัน)
+# ==============================================================================
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # เปลี่ยนชื่อ image ตาม Docker Hub ของเพื่อน
+    image: friend-username/friend-app:main
+    container_name: friend-app
+    restart: unless-stopped
+    ports:
+      # ⚠️ ห้ามใช้พอร์ต 3001 (FitMate ใช้อยู่) ให้ใช้ 3002
+      # และต้องขึ้นต้นด้วย 127.0.0.1 เพื่อความปลอดภัย
+      - "127.0.0.1:3002:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
