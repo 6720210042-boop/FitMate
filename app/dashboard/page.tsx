@@ -87,6 +87,8 @@ export interface MealOption {
   category: "ตามสั่ง/นอกบ้าน" | "ทำเองง่ายๆ" | "พร้อมทานสะดวก";
   orderingTip?: string; // เทคนิคสั่งอาหารเลี่ยงโซเดียม/น้ำมัน
   plateRatio: string; // เช่น "ผัก 2 ส่วน + ข้าว 1 ส่วน + โปรตีน 1 ส่วน"
+  imageUrl?: string; // URL ภาพถ่ายอาหารความละเอียดสูง
+  imageAlt?: string; // คำอธิบายภาพเพื่อ Accessibility และ SEO
 }
 
 export interface MealItem {
@@ -98,6 +100,55 @@ export interface MealItem {
   safetyNote: string;
   options: MealOption[];
 }
+
+const allergyLabelMap: Record<string, string> = {
+  seafood: "อาหารทะเล / กุ้ง / ปลา",
+  peanuts: "ถั่วลิสง",
+  dairy: "นมวัว / เนย / ผลิตภัณฑ์นม",
+  egg: "ไข่ไก่ / ไข่เป็ด",
+  soy: "ถั่วเหลือง / ผลิตภัณฑ์จากเต้าหู้",
+  none: "ไม่มีประวัติแพ้อาหาร",
+};
+
+const dislikeLabelMap: Record<string, string> = {
+  pork: "เนื้อหมู",
+  poultry: "สัตว์ปีก (ไก่/เป็ด)",
+  red_meat: "เนื้อแดง (วัว)",
+  seafood: "อาหารทะเล / ปลา / กุ้ง",
+  egg: "ไข่ไก่",
+  vegetables: "ผักใบเขียว",
+  spicy: "อาหารรสเผ็ด",
+  none: "ไม่มี (ทานได้ทุกชนิด)",
+};
+
+const dietTypeLabelMap: Record<string, string> = {
+  normal: "ทั่วไป / โภชนาการสมดุล (Balanced)",
+  clean: "อาหารคลีน (Clean Food)",
+  keto: "คีโตเจนิก (Ketogenic)",
+  halal: "ฮาลาล (Halal ปลอดหมู 100%)",
+  vegetarian: "มังสวิรัติ (Vegetarian)",
+  vegan: "วีแกน (Vegan 100%)",
+};
+
+const eatingStyleLabelMap: Record<string, string> = {
+  street_food: "ทานนอกบ้าน / ตามสั่งเป็นหลัก",
+  home_cook: "ปรุงอาหารทานเองเป็นหลัก",
+  mixed: "ผสมผสาน (ทำเองและซื้อทาน)",
+};
+
+const budgetLabelMap: Record<string, string> = {
+  economy: "ประหยัดคุ้มค่า (เน้นโปรตีนราคาสบายกระเป๋า)",
+  moderate: "ปานกลาง (สมดุลความสะดวกและคุณภาพ)",
+  flexible: "ยืดหยุ่น / พรีเมียม (เน้นความสะดวกและวัตถุดิบเกรดสูง)",
+};
+
+const supplementLabelMap: Record<string, string> = {
+  whey: "เวย์โปรตีน (Whey Protein)",
+  creatine: "ครีเอทีน (Creatine Monohydrate)",
+  multivitamin: "วิตามินรวม (Multivitamin)",
+  fish_oil: "น้ำมันปลา (Fish Oil)",
+  none: "ไม่ได้รับประทานอาหารเสริม",
+};
 
 export default function DashboardPage() {
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
@@ -1063,36 +1114,97 @@ export default function DashboardPage() {
 
   const workoutSchedule = generatePersonalizedWorkoutDays(dayLocations);
 
-  // ระบบ HARD FILTER อาหารที่แพ้ 100% พร้อมตัวเลือกเมนูหลากหลาย 3 รูปแบบต่อมื้อ
+  // ระบบ HARD FILTER อาหารที่แพ้ 100% และคัดกรองตามความชอบ/รูปแบบการทานเฉพาะบุคคล
   const generatePersonalizedMealPlan = (): MealItem[] => {
     const allergies = assessment.foodAllergies || ["none"];
-    const isNoSeafood = allergies.includes("seafood");
-    const isNoPeanuts = allergies.includes("peanuts");
-    const isNoDairy = allergies.includes("dairy");
-    const isNoEgg = allergies.includes("egg");
-    const isNoSoy = allergies.includes("soy");
+    const otherAllergyText = (assessment.otherAllergy || "").trim().toLowerCase();
+    const dislikedList = assessment.dislikedFoods || ["none"];
+    const otherDislikedText = (assessment.otherDisliked || "").trim().toLowerCase();
 
+    // 1. ตรวจสอบสารก่อภูมิแพ้ (Hard Filter)
+    const isNoSeafood = allergies.includes("seafood") || otherAllergyText.includes("กุ้ง") || otherAllergyText.includes("ปู") || otherAllergyText.includes("หอย") || otherAllergyText.includes("ปลา") || otherAllergyText.includes("หมึก") || otherAllergyText.includes("seafood") || otherAllergyText.includes("shrimp") || otherAllergyText.includes("fish");
+    const isNoPeanuts = allergies.includes("peanuts") || otherAllergyText.includes("ถั่ว") || otherAllergyText.includes("peanut");
+    const isNoDairy = allergies.includes("dairy") || otherAllergyText.includes("นม") || otherAllergyText.includes("เนย") || otherAllergyText.includes("ชีส") || otherAllergyText.includes("dairy") || otherAllergyText.includes("milk") || otherAllergyText.includes("cheese");
+    const isNoEgg = allergies.includes("egg") || otherAllergyText.includes("ไข่") || otherAllergyText.includes("egg");
+    const isNoSoy = allergies.includes("soy") || otherAllergyText.includes("ถั่วเหลือง") || otherAllergyText.includes("เต้าหู้") || otherAllergyText.includes("soy") || otherAllergyText.includes("tofu");
+
+    // 2. ตรวจสอบอาหารที่ไม่ชอบหรือไม่ทาน
+    const isDislikePork = dislikedList.includes("pork") || otherDislikedText.includes("หมู") || otherDislikedText.includes("pork");
+    const isDislikePoultry = dislikedList.includes("poultry") || otherDislikedText.includes("ไก่") || otherDislikedText.includes("เป็ด") || otherDislikedText.includes("chicken");
+    const isDislikeRedMeat = dislikedList.includes("red_meat") || otherDislikedText.includes("เนื้อ") || otherDislikedText.includes("วัว") || otherDislikedText.includes("beef");
+    const isDislikeSeafood = dislikedList.includes("seafood") || otherDislikedText.includes("กุ้ง") || otherDislikedText.includes("ปลา") || otherDislikedText.includes("ปู") || otherDislikedText.includes("หอย") || otherDislikedText.includes("หมึก") || otherDislikedText.includes("seafood") || otherDislikedText.includes("shrimp") || otherDislikedText.includes("fish");
+    const isDislikeEgg = dislikedList.includes("egg") || otherDislikedText.includes("ไข่") || otherDislikedText.includes("egg");
+    const isDislikeVeg = dislikedList.includes("vegetables") || otherDislikedText.includes("ผัก") || otherDislikedText.includes("veg");
+    const isDislikeSpicy = dislikedList.includes("spicy") || otherDislikedText.includes("เผ็ด") || otherDislikedText.includes("spicy") || otherDislikedText.includes("พริก");
+
+    // รวมเกณฑ์หลีกเลี่ยง (Avoidance criteria)
+    const avoidSeafood = isNoSeafood || isDislikeSeafood;
+    const avoidEgg = isNoEgg || isDislikeEgg;
+    const isHalal = assessment.dietType === "halal";
+    const avoidPork = isDislikePork || isHalal; // อาหารฮาลาลต้องปลอดเนื้อหมู 100%
+    const avoidPoultry = isDislikePoultry;
+    const avoidRedMeat = isDislikeRedMeat;
+
+    // รูปแบบการทาน (Diet Type)
     const isVegetarian = assessment.dietType === "vegetarian" || assessment.dietType === "vegan";
+    const isVegan = assessment.dietType === "vegan";
+    const isKeto = assessment.dietType === "keto";
+    const isClean = assessment.dietType === "clean";
+
+    // วิถีชีวิตและแหล่งอาหาร (Eating Style)
+    const eatingStyle = assessment.eatingStyle || "mixed";
+
+    // การคำนวณสารอาหารต่อมื้อ
     const mealsCount = assessment.mealsPerDay || 3;
     const targetCal = assessment.targetCalories || 1800;
     const targetProtein = assessment.targetProteinGrams || 100;
 
     const calPerMeal = Math.round(targetCal / mealsCount);
     const proteinPerMeal = Math.round(targetProtein / mealsCount);
-    const carbsPerMeal = Math.round((calPerMeal * 0.48) / 4);
-    const fatPerMeal = Math.round((calPerMeal * 0.25) / 9);
 
-    const allergySafetyNote = [
-      isNoSeafood ? "ปลอดอาหารทะเล" : "",
-      isNoEgg ? "ปลอดไข่" : "",
-      isNoDairy ? "ปลอดนมวัว/เนย" : "",
-      isNoSoy ? "ปลอดถั่วเหลือง" : "",
-      isNoPeanuts ? "ปลอดถั่วลิสง" : "",
-    ].filter(Boolean).join(" • ");
+    // ปรับสัดส่วนคาร์บและไขมันตามรูปแบบไดเอท (เช่น คีโต ลดแป้งต่ำมาก เพิ่มไขมันดี)
+    let carbsPerMeal = Math.round((calPerMeal * 0.48) / 4);
+    let fatPerMeal = Math.round((calPerMeal * 0.25) / 9);
+    if (isKeto) {
+      carbsPerMeal = Math.round((calPerMeal * 0.08) / 4);
+      fatPerMeal = Math.round((calPerMeal * 0.65) / 9);
+    }
 
-    const finalSafetyNote = allergySafetyNote
-      ? `ผ่านการตรวจสอบ Hard Filter: ${allergySafetyNote} 100%`
+    // สรุปข้อความความปลอดภัยและเงื่อนไขที่ตรวจพบ
+    const safetyBadges: string[] = [];
+    if (avoidSeafood) safetyBadges.push("ปลอดอาหารทะเล/กุ้ง");
+    if (avoidEgg) safetyBadges.push("ปลอดไข่");
+    if (isNoDairy) safetyBadges.push("ปลอดนม/เนย");
+    if (isNoSoy) safetyBadges.push("ปลอดถั่วเหลือง/เต้าหู้");
+    if (isNoPeanuts) safetyBadges.push("ปลอดถั่วลิสง");
+    if (avoidPork) safetyBadges.push(isHalal ? "ฮาลาล (ปลอดหมู 100%)" : "ปลอดเนื้อหมู");
+    if (avoidPoultry) safetyBadges.push("ปลอดสัตว์ปีก/ไก่");
+    if (avoidRedMeat) safetyBadges.push("ปลอดเนื้อแดง/วัว");
+    if (isDislikeSpicy) safetyBadges.push("สูตรไม่เผ็ด");
+    if (isKeto) safetyBadges.push("คีโตเจนิก (คาร์บต่ำพิเศษ)");
+    if (isClean) safetyBadges.push("คลีนฟู้ด (โซเดียมต่ำ/ไร้น้ำตาลทราย)");
+    if (isVegan) safetyBadges.push("วีแกน (พืช 100%)");
+
+    const finalSafetyNote = safetyBadges.length > 0
+      ? `ผ่านการคัดกรองเฉพาะบุคคล: ${safetyBadges.join(" • ")}`
       : "คัดกรองสารอาหารครบถ้วนตามโควต้าพลังงานและสุขภาพของคุณ";
+
+    // ฟังก์ชันจัดเรียงตัวเลือกเมนูตาม Eating Style ของผู้ใช้
+    const prioritizeByEatingStyle = (options: MealOption[]): MealOption[] => {
+      if (eatingStyle === "street_food") {
+        return [
+          ...options.filter((o) => o.category === "ตามสั่ง/นอกบ้าน"),
+          ...options.filter((o) => o.category !== "ตามสั่ง/นอกบ้าน"),
+        ];
+      }
+      if (eatingStyle === "home_cook") {
+        return [
+          ...options.filter((o) => o.category === "ทำเองง่ายๆ"),
+          ...options.filter((o) => o.category !== "ทำเองง่ายๆ"),
+        ];
+      }
+      return options;
+    };
 
     const meals: MealItem[] = [];
 
@@ -1100,64 +1212,107 @@ export default function DashboardPage() {
     // มื้อที่ 1 (มื้อเช้า หรือ Brunch)
     // ==========================================
     const meal1Title = mealsCount === 2 ? "มื้อที่ 1 (Brunch 10:00 - 11:30 น.)" : "มื้อเช้า (07:30 - 08:30 น.)";
-    
-    // ตัวเลือกที่ 1: ตามสั่ง / นอกบ้าน
+
     let m1StreetDish = "ข้าวราดกะเพราอกไก่ชิ้น + ไข่ต้ม (สั่ง: ผัดน้ำมันน้อย ไม่ใส่น้ำตาล)";
     let m1StreetTip = "บอกแม่ค้า: 'ผัดน้ำมันน้อยมาก ไม่ใส่น้ำตาล/ผงชูรส' สั่งไข่ต้มแทนไข่ดาวทอด ประหยัดแคลอรี่ได้ 150 kcal";
     let m1StreetPlate = "แตงกวาผักเคียง 2 ส่วน : ข้าวสวย 1 ทัพพี : อกไก่และไข่ต้ม 1 ส่วน";
+    let m1StreetImage = "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       if (isNoSoy) {
-        m1StreetDish = "ข้าวราดผัดเห็ดสามอย่างใส่น้ำมันมะกอก + ไข่ต้ม 2 ฟอง";
+        m1StreetDish = isVegan
+          ? "ข้าวราดเห็ดสามอย่างผัดน้ำมันมะกอก + เมล็ดฟักทองอบ"
+          : "ข้าวราดผัดเห็ดสามอย่างใส่น้ำมันมะกอก + ไข่ต้ม 2 ฟอง";
         m1StreetTip = "สั่ง: 'ผัดเห็ดผักรวมน้ำมันน้อย ไม่ใส่น้ำมันหอยแท้ ใช้ซีอิ๊วขาวเห็ดหอมแทน'";
-        m1StreetPlate = "เห็ดและผักรวม 2 ส่วน : ข้าวกล้อง 1 ส่วน : ไข่ต้ม 1 ส่วน";
+        m1StreetPlate = "เห็ดและผักรวม 2 ส่วน : ข้าวกล้อง 1 ส่วน : โปรตีนจากพืช/ไข่ 1 ส่วน";
+        m1StreetImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
       } else {
-        m1StreetDish = "ข้าวราดเต้าหู้ขาวผัดกะเพราเห็ดหอม + ไข่ต้ม (สั่งไม่หวาน)";
+        m1StreetDish = isVegan
+          ? "ข้าวราดเต้าหู้ขาวผัดกะเพราเห็ดหอม + ถั่วแระต้ม"
+          : "ข้าวราดเต้าหู้ขาวผัดกะเพราเห็ดหอม + ไข่ต้ม (สั่งไม่หวาน)";
         m1StreetTip = "สั่ง: 'เต้าหู้ผัดกะเพราน้ำมันน้อย ไม่ใส่น้ำตาลและผงชูรส'";
-        m1StreetPlate = "ผักเคียง 2 ส่วน : ข้าวสวย 1 ทัพพี : เต้าหู้และไข่ต้ม 1 ส่วน";
+        m1StreetPlate = "ผักเคียง 2 ส่วน : ข้าวสวย 1 ทัพพี : เต้าหู้ขาว 1 ส่วน";
+        m1StreetImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
       }
-    } else if (isNoEgg) {
-      m1StreetDish = "ข้าวราดอกไก่ผัดขิงเห็ดหูหนู (สั่งไม่หวาน ผัดน้ำมันน้อย)";
-      m1StreetTip = "สั่งแม่ค้าเพิ่มปริมาณเนื้อไก่ล้วนเพื่อชดเชยโปรตีนจากไข่ต้ม ผัดน้ำมันครึ่งช้อนชา";
-      m1StreetPlate = "เห็ดหูหนูและขิง 2 ส่วน : ข้าว 1 ทัพพี : อกไก่ล้วน 1 ส่วน";
+    } else {
+      // ผู้ทานเนื้อสัตว์
+      const proteinChoice = !avoidPoultry ? "อกไก่ชิ้น" : !avoidPork ? "สันในหมู" : "เนื้อวัวไม่ติดมัน/เต้าหู้";
+      const cookMethod = isDislikeSpicy ? "ผัดกระเทียมพริกไทยดำสูตรไม่เผ็ด" : "ผัดกะเพรา";
+      const eggSide = avoidEgg || isVegan ? "" : " + ไข่ต้ม";
+
+      if (isKeto) {
+        m1StreetDish = `เกาเหลา${proteinChoice}น้ำใสพิเศษเนื้อ + ไข่ต้ม 2 ฟอง (ไม่ใส่กระเทียมเจียว ไม่ใส่เส้น)`;
+        m1StreetTip = "สั่ง: 'เน้นเนื้อล้วน ผักบุ้งถั่วงอกลวก ไม่ใส่น้ำตาล/ผงชูรส ไม่เจียวกระเทียม' ได้โปรตีนและไขมันดี คาร์บต่ำมาก";
+        m1StreetPlate = "ผักใบเขียว 2 ส่วน : ไข่ต้มและอโวคาโด 1 ส่วน : เนื้อสัตว์ล้วน 1 ส่วน";
+        m1StreetImage = "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80";
+      } else {
+        m1StreetDish = `ข้าวราด${cookMethod}${proteinChoice}${eggSide} (สั่ง: ผัดน้ำมันน้อย ไม่ใส่น้ำตาล)`;
+        m1StreetTip = `สั่งแม่ค้า: 'ผัดน้ำมันน้อย ไม่หวาน ไม่ชูรส' ${avoidEgg ? "ขอเพิ่มเนื้อสัตว์ทดแทนไข่" : "สั่งไข่ต้มเพื่อเลี่ยงน้ำมันทอด"}`;
+        m1StreetPlate = `ผักเคียง 2 ส่วน : ข้าวกล้อง/ข้าวสวย 1 ทัพพี : ${proteinChoice} 1 ส่วน`;
+        m1StreetImage = "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80";
+      }
     }
 
     // ตัวเลือกที่ 2: ทำเองง่ายๆ
-    let m1HomeDish = "ข้าวไรซ์เบอร์รี่ 1 ทัพพี + อกไก่หมักพริกไทยดำย่าง + ผักลวก (บรอกโคลี/แครอท)";
+    let m1HomeDish = "ข้าวไรซ์เบอร์รี่ 1 ทัพพี + อกไก่หมักพริกไทยดำย่าง + บรอกโคลี/แครอทนึ่ง";
     let m1HomeTip = "ใช้กระทะเทฟลอนสเปรย์น้ำมันมะกอกบางๆ ปรุงรสด้วยซีอิ๊วขาวลดโซเดียม 1 ช้อนชา + พริกไทยดำบด";
     let m1HomePlate = "บรอกโคลีและแครอทนึ่ง 2 ส่วน : ข้าวไรซ์เบอร์รี่ 1 ส่วน : อกไก่ย่าง 1 ฝ่ามือ";
+    let m1HomeImage = "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       if (isNoSoy) {
-        m1HomeDish = "ข้าวกล้อง + เห็ดย่างสมุนไพร + ถั่วลูกไก่ต้ม + ไข่ต้ม 2 ฟอง";
+        m1HomeDish = isVegan
+          ? "ข้าวกล้อง + เห็ดย่างสมุนไพร + ถั่วลูกไก่ต้มคลุกน้ำมันมะกอก"
+          : "ข้าวกล้อง + เห็ดย่างสมุนไพร + ถั่วลูกไก่ต้ม + ไข่ต้ม 2 ฟอง";
         m1HomeTip = "ต้มถั่วลูกไก่ไว้ล่วงหน้า ใช้น้ำมันมะกอก 1 ช้อนชาคลุกเห็ดก่อนกริลล์";
-        m1HomePlate = "สลัดผักและเห็ด 2 ส่วน : ข้าวกล้อง 1 ส่วน : ไข่ต้มและถั่วลูกไก่ 1 ส่วน";
+        m1HomePlate = "สลัดผักและเห็ด 2 ส่วน : ข้าวกล้อง 1 ส่วน : ถั่วลูกไก่ 1 ส่วน";
+        m1HomeImage = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80";
       } else {
         m1HomeDish = "ข้าวกล้อง + เต้าหู้ขาวกริลล์ซอสเทอริยากิโซเดียมต่ำ + บรอกโคลีนึ่ง";
         m1HomeTip = "ซับน้ำจากเต้าหู้ให้แห้ง กริลล์บนกระทะจนผิวเหลืองกรอบ ใส่น้ำซอสเพียง 1 ช้อนโต๊ะ";
         m1HomePlate = "บรอกโคลีนึ่ง 2 ส่วน : ข้าวกล้อง 1 ส่วน : เต้าหู้กริลล์ 1 แผ่นใหญ่";
+        m1HomeImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
       }
-    } else if (isNoEgg) {
-      m1HomeDish = "ข้าวกล้อง + สันในหมูหมักกระเทียมพริกไทยย่าง + ฟักทองนึ่งและผักต้ม";
-      m1HomeTip = "เลือกสันในหมูไร้มัน ปรุงด้วยกระเทียมสับและเกลือชมพูเล็กน้อย ย่างในหม้อทอดไร้น้ำมัน";
-      m1HomePlate = "ผักต้ม 2 ส่วน : ข้าวกล้อง 1 ส่วน : สันในหมูย่าง 1 ส่วน";
+    } else {
+      const homeMeat = !avoidPoultry ? "อกไก่หมักสมุนไพร" : !avoidPork ? "สันในหมูไร้มัน" : "เนื้อสะโพกวัวไม่ติดมัน";
+      if (isKeto) {
+        m1HomeDish = `${homeMeat}ย่างกระทะน้ำมันมะกอก + สลัดผักร็อกเก็ตใส่อะโวคาโดครึ่งลูก + ไข่ต้ม 2 ฟอง`;
+        m1HomeTip = "ย่างด้วยน้ำมันมะกอก โรยเกลือชมพูและพริกไทยดำ คาร์โบไฮเดรตต่ำมาก ได้ไขมันไม่อิ่มตัวเชิงเดี่ยว";
+        m1HomePlate = "ผักสลัด 2 ส่วน : อะโวคาโด 1 ส่วน : เนื้อสัตว์และไข่ 1 ส่วน";
+        m1HomeImage = "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80";
+      } else {
+        m1HomeDish = `ข้าวกล้อง/ไรซ์เบอร์รี่ 1 ทัพพี + ${homeMeat}ย่าง + ผักลวก (ฟักทอง/บรอกโคลี)`;
+        m1HomeTip = "หมักเนื้อด้วยเกลือชมพู พริกไทยดำ และซีอิ๊วขาวลดโซเดียม ย่างในหม้อทอดไร้น้ำมัน";
+        m1HomePlate = `ผักลวก 2 ส่วน : ข้าวกล้อง 1 ส่วน : ${homeMeat} 1 ส่วน`;
+        m1HomeImage = "https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=800&q=80";
+      }
     }
 
     // ตัวเลือกที่ 3: พร้อมทานสะดวก
-    let m1QuickDish = "อกไก่นุ่มพร้อมทาน (7-Eleven) + ข้าวกล้องถ้วย + สลัดผักน้ำใส";
+    let m1QuickDish = "อกไก่นุ่มพร้อมทาน + ข้าวกล้องถ้วย + สลัดผักน้ำใส";
     let m1QuickTip = "ฉีกซองอุ่นเวฟ 1 นาที ทานคู่น้ำสลัดงาญี่ปุ่นน้ำใส (เทเพียงครึ่งซอง เลี่ยงน้ำสลัดครีม)";
     let m1QuickPlate = "สลัดผัก 1 กล่อง (2 ส่วน) : ข้าวกล้อง 1 ถ้วย (1 ส่วน) : อกไก่นุ่ม 1 ชิ้น (1 ส่วน)";
+    let m1QuickImage = "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       m1QuickDish = isNoSoy
-        ? "ข้าวโพดหวานต้ม + ไข่ต้มพร้อมทาน 2 ฟอง + สลัดผักรวมน้ำใส"
-        : "ถั่วแระญี่ปุ่นพร้อมทาน + ข้าวกล้องถ้วย + นมถั่วเหลืองสูตรไม่หวาน";
-      m1QuickTip = "หยิบง่ายในร้านสะดวกซื้อ โปรตีนจากพืชและไข่ต้ม อิ่มท้องเร็ว";
+        ? (isVegan ? "ข้าวโพดหวานต้ม + ถั่วรวมอบธรรมชาติ + สลัดผักรวมน้ำใส" : "ข้าวโพดหวานต้ม + ไข่ต้มพร้อมทาน 2 ฟอง + สลัดผักรวมน้ำใส")
+        : (isVegan ? "ถั่วแระญี่ปุ่นพร้อมทาน + ข้าวกล้องถ้วย + น้ำเต้าหู้สูตรไม่หวาน" : "ถั่วแระญี่ปุ่นพร้อมทาน + ข้าวกล้องถ้วย + นมถั่วเหลืองสูตรไม่หวาน + ไข่ต้ม 1 ฟอง");
+      m1QuickTip = "หยิบง่ายในร้านสะดวกซื้อ โปรตีนจากพืช อิ่มท้องเร็ว ปราศจากไขมันทรานส์";
       m1QuickPlate = "สลัดผัก 2 ส่วน : ข้าวกล้อง/ข้าวโพด 1 ส่วน : โปรตีนจากพืช 1 ส่วน";
-    } else if (isNoDairy && !isVegetarian) {
-      m1QuickDish = "อกไก่นุ่มพริกไทยดำ + ข้าวไรซ์เบอร์รี่ถ้วย + กล้วยหอม 1 ลูก";
-      m1QuickTip = "ตรวจสอบฉลาก ปราศจากส่วนผสมของเนยและนมวัว 100%";
-      m1QuickPlate = "ผักสลัด 2 ส่วน : ข้าวไรซ์เบอร์รี่ 1 ส่วน : อกไก่นุ่ม 1 ส่วน";
+      m1QuickImage = "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80";
+    } else if (avoidPoultry) {
+      m1QuickDish = !avoidPork
+        ? "หมูย่างพร้อมทานสูตรไขมันต่ำ + ข้าวกล้องถ้วย + สลัดผักสด"
+        : "ไข่ตุ๋นโซเดียมต่ำ 2 ถ้วย + ข้าวกล้องถ้วย + ผลไม้สด 1 ส่วน";
+      m1QuickTip = "เลือกสูตรโซเดียมต่ำ หลีกเลี่ยงน้ำจิ้มหวาน";
+      m1QuickPlate = "ผักสด 2 ส่วน : ข้าวกล้อง 1 ส่วน : โปรตีน 1 ส่วน";
+      m1QuickImage = "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80";
+    } else if (isKeto) {
+      m1QuickDish = "อกไก่นุ่มพร้อมทาน 2 ชิ้น + ไข่ต้ม 2 ฟอง + อัลมอนด์อบธรรมชาติ 1 ซองเล็ก (ไม่มีข้าว)";
+      m1QuickTip = "ตัดคาร์บแปรรูปออกทั้งหมด ได้โปรตีนเน้นๆ และไขมันดีจากถั่วเปลือกแข็ง";
+      m1QuickPlate = "ผักสลัด 2 ส่วน : อัลมอนด์ 1 ส่วน : อกไก่นุ่มและไข่ต้ม 1 ส่วน";
+      m1QuickImage = "https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80";
     }
 
     meals.push({
@@ -1167,11 +1322,11 @@ export default function DashboardPage() {
       carbs: `${carbsPerMeal} กรัม`,
       fat: `${fatPerMeal} กรัม`,
       safetyNote: finalSafetyNote,
-      options: [
-        { category: "ตามสั่ง/นอกบ้าน", dish: m1StreetDish, orderingTip: m1StreetTip, plateRatio: m1StreetPlate },
-        { category: "ทำเองง่ายๆ", dish: m1HomeDish, orderingTip: m1HomeTip, plateRatio: m1HomePlate },
-        { category: "พร้อมทานสะดวก", dish: m1QuickDish, orderingTip: m1QuickTip, plateRatio: m1QuickPlate },
-      ],
+      options: prioritizeByEatingStyle([
+        { category: "ตามสั่ง/นอกบ้าน", dish: m1StreetDish, orderingTip: m1StreetTip, plateRatio: m1StreetPlate, imageUrl: m1StreetImage, imageAlt: m1StreetDish },
+        { category: "ทำเองง่ายๆ", dish: m1HomeDish, orderingTip: m1HomeTip, plateRatio: m1HomePlate, imageUrl: m1HomeImage, imageAlt: m1HomeDish },
+        { category: "พร้อมทานสะดวก", dish: m1QuickDish, orderingTip: m1QuickTip, plateRatio: m1QuickPlate, imageUrl: m1QuickImage, imageAlt: m1QuickDish },
+      ]),
     });
 
     // ==========================================
@@ -1179,44 +1334,77 @@ export default function DashboardPage() {
     // ==========================================
     const meal2Title = mealsCount === 2 ? "มื้อที่ 2 (Dinner 17:00 - 18:30 น.)" : "มื้อกลางวัน (12:00 - 13:00 น.)";
 
-    let m2StreetDish = isNoSeafood
-      ? "เกาเหลาไก่ฉีก/หมูสันในล้วนพิเศษเนื้อ + ข้าวสวย 1 ทัพพี (สั่ง: ไม่ใส่กระเทียมเจียว ไม่ใส่ผงชูรส)"
-      : "ข้าวหน้าปลากะพงย่างซีอิ๊วโซเดียมต่ำ + ผักต้มเคียง (สั่งไม่เค็มจัด)";
+    let m2StreetDish = "เกาเหลาไก่ฉีกพิเศษเนื้อ + ข้าวสวย 1 ทัพพี (สั่ง: ไม่ใส่กระเทียมเจียว ไม่ใส่ผงชูรส)";
     let m2StreetTip = "สั่ง: 'ไม่เจียวน้ำมัน ไม่ปรุงน้ำตาลเพิ่ม ซดน้ำซุปเพียงเล็กน้อย' เพื่อคุมโซเดียมไม่ให้บวมน้ำ";
-    let m2StreetPlate = "ถั่วงอกและผักเคียง 2 ส่วน : ข้าวสวย 1 ส่วน : เนื้อไก่/ปลา 1 ส่วน";
+    let m2StreetPlate = "ถั่วงอกและผักเคียง 2 ส่วน : ข้าวสวย 1 ส่วน : เนื้อสัตว์ 1 ส่วน";
+    let m2StreetImage = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       m2StreetDish = isNoSoy
         ? "ราดหน้าหมี่ข้าวกล้องผักรวมเห็ดหอม (สั่ง: ใช้น้ำมันน้อย แยกน้ำราด ไม่หวาน)"
-        : "ก๋วยเตี๋ยวลุยสวนเต้าหู้เห็ดหอม + น้ำจิ้มซีฟู้ดเจรสเปรี้ยวหวานน้อย";
+        : "ก๋วยเตี๋ยวลุยสวนเต้าหู้เห็ดหอม + น้ำจิ้มรสเปรี้ยวหวานน้อย";
       m2StreetTip = "เน้นผักสดและเห็ด ทานน้ำจิ้มพอแตะรสชาติ หลีกเลี่ยงของทอดเจที่มีน้ำมันแฝงสูง";
       m2StreetPlate = "ผักสดลุยสวน 2 ส่วน : แผ่นแป้งข้าว 1 ส่วน : เต้าหู้/เห็ด 1 ส่วน";
+      m2StreetImage = "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=800&q=80";
+    } else {
+      if (!avoidSeafood) {
+        m2StreetDish = "ข้าวหน้าปลากะพงย่างซีอิ๊วโซเดียมต่ำ + ผักต้มเคียง (สั่งไม่เค็มจัด)";
+        m2StreetTip = "สั่งแม่ค้าราดซอสเพียง 1 ช้อนชา เลี่ยงการทานหนังปลาทอดกรอบ";
+        m2StreetImage = "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80";
+      } else {
+        const m2Meat = !avoidPoultry ? "ไก่ฉีก" : !avoidPork ? "หมูสันในล้วน" : "เนื้อวัวตุ๋นไร้มัน";
+        m2StreetDish = `เกาเหลา${m2Meat}พิเศษเนื้อ + ข้าวสวย 1 ทัพพี (สั่ง: ไม่ใส่กระเทียมเจียว ไม่ใส่ผงชูรส)`;
+        m2StreetImage = "https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=800&q=80";
+      }
     }
 
-    let m2HomeDish = isNoSeafood
-      ? "สเต็กอกไก่หรือสันในหมูกริลล์พริกไทยดำ + มันเทศนึ่ง 1 หัว + สลัดผักน้ำส้มสายชูหมักแอปเปิ้ล (ACV)"
-      : "สเต็กปลาแซลมอนหรือปลากะพงย่างกระทะ + มันบดสูตรไม่ใส่เนย + หน่อไม้ฝรั่งย่าง";
+    let m2HomeDish = "สเต็กอกไก่กริลล์พริกไทยดำ + มันเทศนึ่ง 1 หัว + สลัดผักน้ำส้มสายชูหมักแอปเปิ้ล (ACV)";
     let m2HomeTip = "ใช้ความร้อนปานกลาง โรยเกลือเล็กน้อยและโรสแมรี่ ช่วยเพิ่มกลิ่นหอมโดยไม่ต้องพึ่งผงปรุงรสสำเร็จรูป";
-    let m2HomePlate = "สลัดผักหรือหน่อไม้ฝรั่ง 2 ส่วน : มันเทศ/มันบด 1 ส่วน : สเต็ก 1 ชิ้นเต็มฝ่ามือ";
+    let m2HomePlate = "สลัดผัก 2 ส่วน : มันเทศนึ่ง 1 ส่วน : สเต็ก 1 ชิ้นเต็มฝ่ามือ";
+    let m2HomeImage = "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       m2HomeDish = isNoSoy
         ? "สลัดควินัวผสมถั่วลูกไก่อบเครื่องเทศ + อะโวคาโดครึ่งลูกและมะเขือเทศราชินี"
         : "เทมเป้อบซอสการ์ลิคเฮิร์บ + ข้าวไรซ์เบอร์รี่ + ผัดผักกวางตุ้งน้ำมันมะกอก";
       m2HomeTip = "ควินัวและเทมเป้เป็นสุดยอดแหล่งโปรตีนพืชที่มีกรดอะมิโนครบถ้วน อิ่มท้องนาน";
       m2HomePlate = "ผักสลัดหลากสี 2 ส่วน : ควินัว/ข้าวไรซ์เบอร์รี่ 1 ส่วน : เทมเป้/ถั่ว 1 ส่วน";
+      m2HomeImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
+    } else {
+      if (!avoidSeafood) {
+        m2HomeDish = "สเต็กปลาแซลมอนหรือปลากะพงย่างกระทะ + มันเทศนึ่ง + หน่อไม้ฝรั่งย่าง";
+        m2HomeTip = "ปลาแซลมอนให้กรดไขมันโอเมก้า 3 สูง ย่างบนกระทะโดยใช้น้ำมันปลาธรรมชาติ ไม่ต้องเติมน้ำมันพืช";
+        m2HomeImage = "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80";
+      } else {
+        const meat2 = !avoidPoultry ? "อกไก่" : !avoidPork ? "สันในหมู" : "เนื้อสันในวัว";
+        m2HomeDish = `สเต็ก${meat2}กริลล์พริกไทยดำ + มันเทศนึ่ง 1 หัว + สลัดผักสด`;
+        m2HomeImage = "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=800&q=80";
+      }
+      if (isKeto) {
+        m2HomeDish = m2HomeDish.replace("มันเทศนึ่ง 1 หัว", "กะหล่ำดอกบดและสลัดอะโวคาโด");
+        m2HomeImage = "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80";
+      }
     }
 
-    let m2QuickDish = isNoSeafood
-      ? "สันในไก่ย่างถ่านพร้อมทาน + ข้าวสวยหอมมะลิผสมข้าวกล้อง + น้ำพริกอกไก่คลีน"
-      : "ทูน่าในน้ำแร่ 1 กระป๋อง + ขนมปังโฮลวีต 2 แผ่น + ผักกาดคอสสด";
-    let m2QuickTip = "เลือกทูน่า 'ในน้ำแร่' เท่านั้นเพื่อเลี่ยงน้ำมันพืชแปรรูป บีบมะนาวสดเพิ่มรสชาติ";
+    let m2QuickDish = "สันในไก่ย่างถ่านพร้อมทาน + ข้าวสวยหอมมะลิผสมข้าวกล้อง + น้ำพริกอกไก่คลีน";
+    let m2QuickTip = "เลือกเนื้อสัตว์ไม่ติดมัน รสชาติจัดจ้านแต่โซเดียมต่ำ";
     let m2QuickPlate = "ผักสด 2 ส่วน : ข้าวกล้องหรือขนมปัง 1 ส่วน : เนื้อสัตว์ 1 ส่วน";
+    let m2QuickImage = "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=800&q=80";
 
-    if (isVegetarian) {
+    if (isVegetarian || isVegan) {
       m2QuickDish = "สลัดโรลผักสดเต้าหู้ + ข้าวโพดหวานนึ่ง + ผลไม้สดตามฤดูกาล (ฝรั่ง/แอปเปิ้ล)";
       m2QuickTip = "แตะน้ำจิ้มบางๆ ไม่จุ่มจนท่วม ได้ทั้งวิตามินและใยอาหารกระตุ้นการขับถ่าย";
-      m2QuickPlate = "ผักสดสลัดโรล 2 ส่วน : แผ่นแป้งและข้าวโพด 1 ส่วน : เต้าหู้ 1 ส่วน";
+      m2QuickPlate = "ผักสดสลัดโรล 2 ส่วน : ข้าวโพด 1 ส่วน : เต้าหู้ 1 ส่วน";
+      m2QuickImage = "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?auto=format&fit=crop&w=800&q=80";
+    } else if (!avoidSeafood) {
+      m2QuickDish = "ทูน่าในน้ำแร่ 1 กระป๋อง + ขนมปังโฮลวีต 2 แผ่น + ผักกาดคอสสด";
+      m2QuickTip = "เลือกทูน่า 'ในน้ำแร่' เท่านั้นเพื่อเลี่ยงน้ำมันพืชแปรรูป บีบมะนาวสดเพิ่มรสชาติ";
+      m2QuickImage = "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80";
+    } else if (avoidPoultry) {
+      m2QuickDish = !avoidPork
+        ? "สันในหมูย่างจิ้มแจ่วสูตรคลีน + ข้าวกล้องถ้วย + แตงกวาผักสด"
+        : "ไข่ต้มพร้อมทาน 3 ฟอง + ข้าวโพดหวานนึ่ง + สลัดผักรวม";
+      m2QuickImage = "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80";
     }
 
     meals.push({
@@ -1226,11 +1414,11 @@ export default function DashboardPage() {
       carbs: `${carbsPerMeal} กรัม`,
       fat: `${fatPerMeal} กรัม`,
       safetyNote: finalSafetyNote,
-      options: [
-        { category: "ตามสั่ง/นอกบ้าน", dish: m2StreetDish, orderingTip: m2StreetTip, plateRatio: m2StreetPlate },
-        { category: "ทำเองง่ายๆ", dish: m2HomeDish, orderingTip: m2HomeTip, plateRatio: m2HomePlate },
-        { category: "พร้อมทานสะดวก", dish: m2QuickDish, orderingTip: m2QuickTip, plateRatio: m2QuickPlate },
-      ],
+      options: prioritizeByEatingStyle([
+        { category: "ตามสั่ง/นอกบ้าน", dish: m2StreetDish, orderingTip: m2StreetTip, plateRatio: m2StreetPlate, imageUrl: m2StreetImage, imageAlt: m2StreetDish },
+        { category: "ทำเองง่ายๆ", dish: m2HomeDish, orderingTip: m2HomeTip, plateRatio: m2HomePlate, imageUrl: m2HomeImage, imageAlt: m2HomeDish },
+        { category: "พร้อมทานสะดวก", dish: m2QuickDish, orderingTip: m2QuickTip, plateRatio: m2QuickPlate, imageUrl: m2QuickImage, imageAlt: m2QuickDish },
+      ]),
     });
 
     // ==========================================
@@ -1239,44 +1427,66 @@ export default function DashboardPage() {
     if (mealsCount >= 3) {
       const meal3Title = "มื้อเย็น (17:30 - 19:00 น.)";
 
-      let m3StreetDish = "แกงจืดเต้าหู้หมูสับตำลึง/ผักกาดขาว (สั่ง: ไม่ใส่ผงชูรส ไม่ใส่กระเทียมเจียว) + ข้าวกล้องครึ่งทัพพี";
+      let m3StreetDish = "แกงจืดเต้าหู้ไก่สับตำลึง/ผักกาดขาว (สั่ง: ไม่ใส่ผงชูรส ไม่ใส่กระเทียมเจียว) + ข้าวกล้องครึ่งทัพพี";
       let m3StreetTip = "มื้อเย็นย่อยง่าย ซดน้ำแกงจืดอุ่นๆ ช่วยให้อยู่ท้อง ซดน้ำแต่พอดีเพื่อเลี่ยงโซเดียมก่อนนอน";
-      let m3StreetPlate = "ตำลึงและผักกาดขาว 2 ส่วน : ข้าวกล้องครึ่งทัพพี (1 ส่วน) : หมูสับไร้มัน/เต้าหู้ (1 ส่วน)";
+      let m3StreetPlate = "ตำลึงและผักกาดขาว 2 ส่วน : ข้าวกล้องครึ่งทัพพี (1 ส่วน) : โปรตีนย่อยง่าย (1 ส่วน)";
+      let m3StreetImage = "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80";
 
-      if (isVegetarian) {
+      if (isVegetarian || isVegan) {
         m3StreetDish = "ต้มจับฉ่ายเจเต้าหู้เห็ดหอม (สั่ง: รสอ่อน ไม่หวาน) + ข้าวกล้องครึ่งทัพพี";
         m3StreetTip = "เน้นตักเนื้อผักจับฉ่ายและเต้าหู้ หลีกเลี่ยงการซดน้ำมันที่ลอยอยู่ด้านบน";
         m3StreetPlate = "ผักจับฉ่าย 2 ส่วน : ข้าวกล้องครึ่งทัพพี : เต้าหู้เห็ดหอม 1 ส่วน";
-      } else if (isNoSoy) {
-        m3StreetDish = "ต้มยำอกไก่น้ำใสใส่เห็ดฟาง (สั่ง: น้ำใส ไม่ใส่นมข้น ไม่หวาน) + ข้าวสวย 1 ทัพพี";
-        m3StreetTip = "ต้มยำน้ำใสให้พลังงานต่ำมาก สมุนไพรข่า ตะไคร้ ใบมะกรูด ช่วยขับลมและกระตุ้นการเผาผลาญ";
-        m3StreetPlate = "เห็ดฟางและสมุนไพร 2 ส่วน : ข้าวสวย 1 ส่วน : อกไก่ฉีก 1 ส่วน";
+        m3StreetImage = "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80";
+      } else {
+        const porkAllowed = !avoidPork;
+        const meat3Street = porkAllowed ? "หมูสับไร้มัน" : "ไก่สับหรือลูกชิ้นปลาแท้";
+        if (isNoSoy) {
+          m3StreetDish = isDislikeSpicy
+            ? `ต้มซุป${meat3Street}ใส่มันฝรั่งและผักกาดขาว + ข้าวสวยครึ่งทัพพี`
+            : `ต้มยำ${meat3Street}น้ำใสใส่เห็ดฟาง (สั่งไม่ใส่นมข้น ไม่หวาน) + ข้าวสวย 1 ทัพพี`;
+        } else {
+          m3StreetDish = `แกงจืดเต้าหู้${meat3Street}ตำลึง/ผักกาดขาว (สั่ง: ไม่ชูรส ไม่กระเทียมเจียว) + ข้าวกล้องครึ่งทัพพี`;
+        }
+        m3StreetImage = "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80";
       }
 
-      let m3HomeDish = isNoSeafood
-        ? "ต้มซุปน่องไก่ไม่ติดหนังใส่มันฝรั่ง มะเขือเทศ และหอมใหญ่ + ข้าวกล้อง"
-        : "ปลากะพงหรือปลานิลนึ่งมะนาวสมุนไพร + ผักกาดขาวลวก + ข้าวกล้องครึ่งทัพพี";
+      let m3HomeDish = !avoidSeafood
+        ? "ปลากะพงหรือปลานิลนึ่งมะนาวสมุนไพร + ผักกาดขาวลวก + ข้าวกล้องครึ่งทัพพี"
+        : "ต้มซุปน่องไก่ไม่ติดหนังใส่มันฝรั่ง มะเขือเทศ และหอมใหญ่ + ข้าวกล้อง";
       let m3HomeTip = "การนึ่งหรือต้มเป็นวิธีปรุงที่ดีที่สุดสำหรับมื้อเย็น ไร้น้ำมันแฝง ร่างกายย่อยและดูดซึมได้ง่าย หลับสบาย";
       let m3HomePlate = "ผักลวกและมะเขือเทศ 2 ส่วน : ข้าวกล้อง 1 ส่วน : เนื้อปลาหรือไก่ 1 ส่วน";
+      let m3HomeImage = !avoidSeafood
+        ? "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80"
+        : "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80";
 
-      if (isVegetarian) {
+      if (isVegetarian || isVegan) {
         m3HomeDish = isNoSoy
           ? "แกงเห็ดรวมใส่ฟักทองและใบแมงลัก + ถั่วแระต้ม + ข้าวกล้องครึ่งทัพพี"
           : "เต้าหู้ขาวนึ่งซีอิ๊วเห็ดหอม + คะน้าฮ่องกงลวก + ข้าวกล้องครึ่งทัพพี";
         m3HomeTip = "ใช้ความหวานธรรมชาติจากฟักทองและเห็ดหอม อิ่มสบายท้อง ไม่อึดอัดเวลานอน";
         m3HomePlate = "คะน้า/เห็ดรวม 2 ส่วน : ข้าวกล้อง 1 ส่วน : เต้าหู้ขาว 1 ส่วน";
+        m3HomeImage = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80";
+      } else if (avoidPoultry && avoidSeafood) {
+        m3HomeDish = !avoidPork
+          ? "ต้มจืดกระดูกหมูอ่อนตุ๋นยาจีนใส่หัวไชเท้าและเห็ดหอม + ข้าวกล้อง"
+          : "เต้าหู้ขาวตุ๋นไข่ขาวและเห็ดหอมโรยต้นหอม + ผักต้มรวม";
+        m3HomeImage = "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80";
       }
 
-      let m3QuickDish = isNoEgg
+      let m3QuickDish = avoidEgg
         ? "อกไก่นุ่มฉีก + สลัดผักรวมน้ำสลัดบัลซามิก + ฝรั่งสด 4-5 ชิ้น"
         : "ไข่ตุ๋นพร้อมทานสูตรโซเดียมต่ำ 2 ถ้วย + สลัดผักรวม + มันหวานญี่ปุ่นชิ้นเล็ก";
       let m3QuickTip = "ไข่ตุ๋นและอกไก่นุ่มพร้อมทานให้โปรตีนคุณภาพสูง ย่อยง่าย ไม่รบกวนการนอนหลับ";
       let m3QuickPlate = "สลัดผัก 2 ส่วน : มันหวาน 1 ส่วน : ไข่ตุ๋น/อกไก่ 1 ส่วน";
+      let m3QuickImage = avoidEgg
+        ? "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80"
+        : "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80";
 
-      if (isVegetarian) {
+      if (isVegetarian || isVegan) {
         m3QuickDish = "สลัดผักเต้าหู้พร้อมทาน + กล้วยน้ำว้า 1 ลูก + นมอัลมอนด์ไม่หวาน";
         m3QuickTip = "กล้วยน้ำว้ามีโพแทสเซียมและทริปโตเฟน ช่วยผ่อนคลายกล้ามเนื้อและระบบประสาท";
         m3QuickPlate = "สลัดผัก 2 ส่วน : กล้วยน้ำว้า 1 ส่วน : เต้าหู้และนมอัลมอนด์ 1 ส่วน";
+        m3QuickImage = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80";
       }
 
       meals.push({
@@ -1286,11 +1496,11 @@ export default function DashboardPage() {
         carbs: `${Math.round(carbsPerMeal * 0.9)} กรัม`,
         fat: `${fatPerMeal} กรัม`,
         safetyNote: finalSafetyNote,
-        options: [
-          { category: "ตามสั่ง/นอกบ้าน", dish: m3StreetDish, orderingTip: m3StreetTip, plateRatio: m3StreetPlate },
-          { category: "ทำเองง่ายๆ", dish: m3HomeDish, orderingTip: m3HomeTip, plateRatio: m3HomePlate },
-          { category: "พร้อมทานสะดวก", dish: m3QuickDish, orderingTip: m3QuickTip, plateRatio: m3QuickPlate },
-        ],
+        options: prioritizeByEatingStyle([
+          { category: "ตามสั่ง/นอกบ้าน", dish: m3StreetDish, orderingTip: m3StreetTip, plateRatio: m3StreetPlate, imageUrl: m3StreetImage, imageAlt: m3StreetDish },
+          { category: "ทำเองง่ายๆ", dish: m3HomeDish, orderingTip: m3HomeTip, plateRatio: m3HomePlate, imageUrl: m3HomeImage, imageAlt: m3HomeDish },
+          { category: "พร้อมทานสะดวก", dish: m3QuickDish, orderingTip: m3QuickTip, plateRatio: m3QuickPlate, imageUrl: m3QuickImage, imageAlt: m3QuickDish },
+        ]),
       });
     }
 
@@ -1303,34 +1513,125 @@ export default function DashboardPage() {
 
       const snackStreetDish = "กล้วยปิ้งไม่ราดน้ำเชื่อม 2 ลูก + นมถั่วเหลือง/นมจืดไม่ใส่น้ำตาล 1 กล่อง";
       const snackStreetTip = "สั่ง: 'ไม่ราดน้ำตาลปี๊บ/กะทิ' ได้คาร์บเชิงเดี่ยวจากธรรมชาติ ดูดซึมเป็นพลังงานออกกำลังกายทันที";
-      const snackStreetPlate = "กล้วยปิ้ง (พลังงานพร้อมใช้) + นมจืด (โปรตีน)";
+      const snackStreetPlate = "กล้วยปิ้ง (พลังงานพร้อมใช้) + นมจืด/นมถั่วเหลือง (โปรตีน)";
+      const snackStreetImage = "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=800&q=80";
 
-      const snackHomeDish = isNoDairy
+      const snackHomeDish = isNoDairy || isVegan
         ? "แอปเปิ้ลเขียวหั่นเสี้ยว 1 ลูก + เนยถั่วอัลมอนด์ 1 ช้อนโต๊ะ (หรือไข่ต้ม 1 ฟอง)"
         : isNoPeanuts
         ? "กรีกโยเกิร์ตแท้ 1 ถ้วย + ผลไม้ตระกูลเบอร์รี่สด"
         : "กรีกโยเกิร์ต 1 ถ้วย + เนยถั่วแท้ 1 ช้อนชา + กล้วยหอมครึ่งลูก";
       const snackHomeTip = "ให้ทั้งโปรตีนและไขมันดี ชะลอความหิว และช่วยซ่อมแซมกล้ามเนื้อหลังฝึก";
       const snackHomePlate = "ผลไม้สด 1 ส่วน : กรีกโยเกิร์ต/ไข่ต้ม 1 ส่วน";
+      const snackHomeImage = "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80";
 
-      const snackQuickDish = isNoDairy
+      const snackQuickDish = isNoDairy || isVegan
         ? "กล้วยหอม 1 ลูก + ถั่วอัลมอนด์อบธรรมชาติ 1 ซองเล็ก (หรือนมอัลมอนด์โปรตีนสูง)"
         : "นมเวย์โปรตีนพร้อมดื่มรสจืด/ช็อกโกแลต (หรือนมโปรตีนสูง 25-30g)";
       const snackQuickTip = "หยิบสะดวก พกพาง่าย ทานก่อนออกกำลังกาย 30-45 นาที หรือทันทีหลังฝึกเสร็จ";
       const snackQuickPlate = "กล้วยหอม 1 ลูก : นมโปรตีนสูง 1 ขวด";
+      const snackQuickImage = "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80";
 
       meals.push({
-        mealName: "ของว่างพลังงานสูง (Pre / Post Workout Snack)",
+        mealName: "มื้อที่ 4: ของว่างฟื้นฟู (Pre / Post Workout Snack)",
         calories: snackCal,
         protein: `${snackProtein} กรัม`,
         carbs: "24 กรัม",
         fat: "5 กรัม",
         safetyNote: finalSafetyNote,
-        options: [
-          { category: "ตามสั่ง/นอกบ้าน", dish: snackStreetDish, orderingTip: snackStreetTip, plateRatio: snackStreetPlate },
-          { category: "ทำเองง่ายๆ", dish: snackHomeDish, orderingTip: snackHomeTip, plateRatio: snackHomePlate },
-          { category: "พร้อมทานสะดวก", dish: snackQuickDish, orderingTip: snackQuickTip, plateRatio: snackQuickPlate },
-        ],
+        options: prioritizeByEatingStyle([
+          { category: "ตามสั่ง/นอกบ้าน", dish: snackStreetDish, orderingTip: snackStreetTip, plateRatio: snackStreetPlate, imageUrl: snackStreetImage, imageAlt: snackStreetDish },
+          { category: "ทำเองง่ายๆ", dish: snackHomeDish, orderingTip: snackHomeTip, plateRatio: snackHomePlate, imageUrl: snackHomeImage, imageAlt: snackHomeDish },
+          { category: "พร้อมทานสะดวก", dish: snackQuickDish, orderingTip: snackQuickTip, plateRatio: snackQuickPlate, imageUrl: snackQuickImage, imageAlt: snackQuickDish },
+        ]),
+      });
+    }
+
+    // ==========================================
+    // มื้อที่ 5 (ของว่างยามบ่าย สำหรับ 5 มื้อขึ้นไป)
+    // ==========================================
+    if (mealsCount >= 5) {
+      const snack5Cal = Math.round(calPerMeal * 0.5);
+      const snack5Protein = Math.max(10, Math.round(proteinPerMeal * 0.5));
+
+      meals.push({
+        mealName: "มื้อที่ 5: ของว่างบ่ายเติมพลังงาน (Afternoon Fuel 15:30 น.)",
+        calories: snack5Cal,
+        protein: `${snack5Protein} กรัม`,
+        carbs: "20 กรัม",
+        fat: "4 กรัม",
+        safetyNote: finalSafetyNote,
+        options: prioritizeByEatingStyle([
+          {
+            category: "ตามสั่ง/นอกบ้าน",
+            dish: "น้ำเต้าหู้ทรงเครื่องหวานน้อย (ใส่ลูกเดือยและถั่วแดง) + ไข่ต้ม 1 ฟอง",
+            orderingTip: "สั่ง: 'ไม่ใส่น้ำตาลทราย' หรือหวาน 25% เพื่อคุมอินซูลิน",
+            plateRatio: "น้ำเต้าหู้ 1 แก้ว + ธัญพืช 1 ส่วน",
+            imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "น้ำเต้าหู้ทรงเครื่องธัญพืช",
+          },
+          {
+            category: "ทำเองง่ายๆ",
+            dish: "สมูทตี้เบอร์รี่รวม + ข้าวโอ๊ต 2 ช้อนโต๊ะ + เมล็ดเจีย 1 ช้อนชา",
+            orderingTip: "ปั่นกับน้ำเปล่าหรือนมอัลมอนด์ไม่หวาน ช่วยให้อยู่ท้องนาน",
+            plateRatio: "ผลไม้เบอร์รี่ 1 ถ้วย : ข้าวโอ๊ตและเมล็ดเจีย 1 ส่วน",
+            imageUrl: "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "สมูทตี้เบอร์รี่ข้าวโอ๊ต",
+          },
+          {
+            category: "พร้อมทานสะดวก",
+            dish: "ถั่วแระญี่ปุ่นต้มพร้อมทาน 1 ซอง + ชาเขียวมัทฉะปราศจากน้ำตาล",
+            orderingTip: "ชาเขียวมีสาร EGCG ช่วยกระตุ้นการเผาผลาญไขมันระหว่างวัน",
+            plateRatio: "ถั่วแระญี่ปุ่น 1 ซอง : ชาเขียว 1 ขวด",
+            imageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "ถั่วแระญี่ปุ่นพร้อมทาน",
+          },
+        ]),
+      });
+    }
+
+    // ==========================================
+    // มื้อที่ 6 (อาหารเสริมโปรตีนก่อนนอน สำหรับ 6 มื้อ)
+    // ==========================================
+    if (mealsCount >= 6) {
+      const snack6Cal = Math.round(calPerMeal * 0.45);
+      const snack6Protein = Math.max(12, Math.round(proteinPerMeal * 0.5));
+
+      meals.push({
+        mealName: "มื้อที่ 6: โปรตีนซ่อมแซมก่อนนอน (Bedtime Recovery 21:00 น.)",
+        calories: snack6Cal,
+        protein: `${snack6Protein} กรัม`,
+        carbs: "8 กรัม",
+        fat: "3 กรัม",
+        safetyNote: finalSafetyNote,
+        options: prioritizeByEatingStyle([
+          {
+            category: "ตามสั่ง/นอกบ้าน",
+            dish: "นมอุ่นสูตรไขมัน 0% หรือนมถั่วเหลืองไม่หวาน 1 แก้ว",
+            orderingTip: "ดื่มอุ่นๆ ช่วยให้อุณหภูมิแกนกลางร่างกายค่อยๆ ลดลงเพื่อการหลับลึก",
+            plateRatio: "นมโปรตีนอุ่น 1 แก้ว",
+            imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "นมอุ่นก่อนนอน",
+          },
+          {
+            category: "ทำเองง่ายๆ",
+            dish: isNoDairy || isVegan
+              ? "ไข่ขาวลวก 3 ฟอง หรือเต้าหู้อ่อนนึ่งซีอิ๊วขาวเล็กน้อย"
+              : "คอตเทจชีส (Cottage Cheese) หรือกรีกโยเกิร์ต 3 ช้อนโต๊ะ โรยอบเชย",
+            orderingTip: "เคซีนโปรตีนดูดซึมช้า ปลดปล่อยกรดอะมิโนซ่อมแซมกล้ามเนื้อต่อเนื่องตลอด 7-8 ชั่วโมงที่นอนหลับ",
+            plateRatio: "เคซีนโปรตีน/ไข่ขาว 1 ถ้วยเล็ก",
+            imageUrl: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "กรีกโยเกิร์ตหรือคอตเทจชีส",
+          },
+          {
+            category: "พร้อมทานสะดวก",
+            dish: "โปรตีนเชค (Casein หรือ Plant Protein) 1 สกู๊ป ผสมน้ำเปล่า",
+            orderingTip: "ชงดื่มก่อนนอน 30 นาที ช่วยลดการสลายตัวของโปรตีนในกล้ามเนื้อ (Anti-Catabolic)",
+            plateRatio: "โปรตีนเชค 1 แก้ว",
+            imageUrl: "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=800&q=80",
+            imageAlt: "โปรตีนเชคก่อนนอน",
+          },
+        ]),
       });
     }
 
@@ -1576,25 +1877,110 @@ export default function DashboardPage() {
                 </svg>
                 การควบคุมความปลอดภัยสารก่อภูมิแพ้ (Allergy Hard Filter)
               </h2>
-              {assessment.foodAllergies.includes("none") ? (
-                <p className="text-xs text-zinc-600">
-                  คุณไม่มีประวัติแพ้อาหาร ระบบจึงเปิดให้ทานสารอาหารได้ครบทุกกลุ่มโดยเน้นอาหารจากธรรมชาติเป็นหลัก
-                </p>
+              {assessment.foodAllergies.includes("none") && !assessment.otherAllergy ? (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs text-emerald-950 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>ไม่มีประวัติแพ้อาหาร ระบบเปิดรับสารอาหารครบทุกกลุ่มและคัดกรองโภชนาการสมดุล 100%</span>
+                </div>
               ) : (
                 <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-xs text-teal-950 space-y-1.5">
                   <div className="font-bold text-teal-800 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-teal-600" />
-                    ระบบกรองวัตถุดิบที่แพ้ออก 100% ในทุกมื้ออาหาร:
+                    ระบบเปิด Hard Filter กรองสารก่อภูมิแพ้ออก 100% ในทุกเมนู:
                   </div>
-                  <p className="leading-relaxed">
-                    อาหารที่ตรวจพบในประวัติของคุณ:{" "}
-                    <strong className="underline">
-                      {assessment.foodAllergies.join(", ")} {assessment.otherAllergy ? `(${assessment.otherAllergy})` : ""}
-                    </strong>{" "}
-                    จะไม่ปรากฏในตารางอาหารเด็ดขาด และได้เตรียมแหล่งโปรตีนทางเลือกที่ปลอดภัยให้แทน
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {assessment.foodAllergies.filter((a) => a !== "none").map((a) => (
+                      <span key={a} className="px-2.5 py-0.5 rounded-full bg-teal-200/80 text-teal-900 font-medium text-[11px]">
+                        {allergyLabelMap[a] || a}
+                      </span>
+                    ))}
+                    {assessment.otherAllergy && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal-700 text-white font-bold text-[11px]">
+                        แพ้เพิ่มเติม: {assessment.otherAllergy}
+                      </span>
+                    )}
+                  </div>
+                  <p className="leading-relaxed text-[11px] text-teal-800 pt-1">
+                    ✓ ปลอดภัย 100%: เมนูทั้งหมดจะไม่มีส่วนประกอบของวัตถุดิบข้างต้น และจัดเตรียมโปรตีนทางเลือกทดแทนให้อัตโนมัติ
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* กล่องคัดกรองอาหารที่ไม่ชอบหรือไม่รับประทาน */}
+            <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+              <h2 className="text-sm font-bold text-zinc-900 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                อาหารที่ไม่ชอบหรือไม่รับประทาน (Food Dislikes & Preferences)
+              </h2>
+              {assessment.dislikedFoods?.includes("none") && !assessment.otherDisliked ? (
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-zinc-200 text-xs text-zinc-600 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-zinc-400 shrink-0" />
+                  <span>ทานได้ทุกชนิด ไม่มีอาหารที่ไม่ชอบ ทำให้แผนอาหารมีความหลากหลายสูงสุด</span>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-1.5">
+                  <div className="font-bold text-rose-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    วัตถุดิบและรสชาติที่ตัดออกจากตารางอาหารตามที่คุณระบุ:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {(assessment.dislikedFoods || []).filter((d) => d !== "none").map((d) => (
+                      <span key={d} className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-medium text-[11px]">
+                        {dislikeLabelMap[d] || d}
+                      </span>
+                    ))}
+                    {assessment.otherDisliked && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-bold text-[11px]">
+                        ไม่ทานเพิ่มเติม: {assessment.otherDisliked}
+                      </span>
+                    )}
+                  </div>
+                  <p className="leading-relaxed text-[11px] text-rose-800 pt-1">
+                    ✓ ปรับแต่งเมนูสำเร็จ: ระบบคัดกรองวัตถุดิบที่ไม่ชอบออก และแทนที่ด้วยแหล่งโปรตีนและผักชนิดที่คุณรับประทานได้
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* การปรับแต่งโภชนาการส่วนบุคคลแบบองค์รวม */}
+            <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+              <h2 className="text-sm font-bold text-zinc-900 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                โปรไฟล์แผนโภชนาการเฉพาะบุคคล (Personalized Nutrition Settings)
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200">
+                  <span className="text-[10px] text-zinc-400 font-semibold block uppercase">รูปแบบไดเอท</span>
+                  <span className="font-bold text-zinc-900 mt-0.5 block">{dietTypeLabelMap[assessment.dietType] || assessment.dietType}</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200">
+                  <span className="text-[10px] text-zinc-400 font-semibold block uppercase">วิถีชีวิต / สไตล์การกิน</span>
+                  <span className="font-bold text-zinc-900 mt-0.5 block">{eatingStyleLabelMap[assessment.eatingStyle || "mixed"] || assessment.eatingStyle}</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200">
+                  <span className="text-[10px] text-zinc-400 font-semibold block uppercase">การแบ่งมื้ออาหาร</span>
+                  <span className="font-bold text-zinc-900 mt-0.5 block">{assessment.mealsPerDay || 3} มื้อต่อวัน</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200">
+                  <span className="text-[10px] text-zinc-400 font-semibold block uppercase">งบประมาณอาหาร</span>
+                  <span className="font-bold text-zinc-900 mt-0.5 block">{budgetLabelMap[assessment.foodBudget] || assessment.foodBudget}</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-zinc-200 sm:col-span-2">
+                  <span className="text-[10px] text-zinc-400 font-semibold block uppercase">อาหารเสริมที่รับประทาน</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(assessment.supplements || ["none"]).map((s) => (
+                      <span key={s} className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200">
+                        {supplementLabelMap[s] || s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* ข้อควรระวังในการฝึก */}
@@ -2222,15 +2608,44 @@ export default function DashboardPage() {
            ======================================================== */}
         {activeTab === "nutrition" && (
           <div className="space-y-6">
-            {/* แถบแจ้งเตือนความปลอดภัยของอาหาร */}
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>
-                  <strong>Hard Filter Validation ผ่าน:</strong> เมนูด้านล่างนี้ได้รับการคัดกรองสารก่อภูมิแพ้ ({assessment.foodAllergies.join(", ")}) ออก 100% เรียบร้อยแล้ว
-                </span>
+            {/* แถบแจ้งเตือนความปลอดภัยของอาหารและการคัดกรองเฉพาะบุคคล */}
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-bold text-emerald-900">
+                    Hard Filter Validation ผ่าน 100%: ระบบปรับแต่งอาหารตามข้อมูลของคุณเรียบร้อยแล้ว
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-bold text-[10px]">
+                    {dietTypeLabelMap[assessment.dietType] || assessment.dietType}
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-800 font-semibold text-[10px]">
+                    {assessment.mealsPerDay || 3} มื้อ/วัน
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-white border border-emerald-200 text-emerald-800 font-semibold text-[10px]">
+                    {eatingStyleLabelMap[assessment.eatingStyle || "mixed"]?.split(" ")[0]}
+                  </span>
+                </div>
+              </div>
+
+              {/* สรุปรายการที่กรองออก */}
+              <div className="text-[11px] text-emerald-800 flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-emerald-200/60">
+                <div>
+                  <strong>สารก่อภูมิแพ้ที่คัดออก:</strong>{" "}
+                  {assessment.foodAllergies.includes("none") && !assessment.otherAllergy
+                    ? "ไม่มีประวัติแพ้"
+                    : `${assessment.foodAllergies.filter(a => a !== "none").map(a => allergyLabelMap[a] || a).join(", ")}${assessment.otherAllergy ? ` (${assessment.otherAllergy})` : ""}`}
+                </div>
+                {(!assessment.dislikedFoods?.includes("none") || assessment.otherDisliked) && (
+                  <div>
+                    <strong>อาหารที่ไม่รับประทานที่ตัดออก:</strong>{" "}
+                    {`${(assessment.dislikedFoods || []).filter(d => d !== "none").map(d => dislikeLabelMap[d] || d).join(", ")}${assessment.otherDisliked ? ` (${assessment.otherDisliked})` : ""}`}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2346,7 +2761,7 @@ export default function DashboardPage() {
             </div>
 
             {/* การแบ่งมื้ออาหาร พร้อมตัวเลือกยืดหยุ่นตามชีวิตจริง */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {mealPlan.map((meal, idx) => {
                 const currentOptIdx = selectedMealChoices[idx] ?? 0;
                 const activeOption = meal.options[currentOptIdx] || meal.options[0];
@@ -2354,12 +2769,13 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={idx}
-                    className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4"
+                    className="bg-white border border-zinc-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+                    {/* Header ของแต่ละมื้อ */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3.5">
                       <div>
                         <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                           {meal.mealName}
                         </h3>
                         <div className="text-[11px] text-teal-700 mt-0.5 font-medium flex items-center gap-1">
@@ -2369,17 +2785,23 @@ export default function DashboardPage() {
                           {meal.safetyNote}
                         </div>
                       </div>
-                      <span className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full shrink-0">
-                        ~ {meal.calories} kcal
+                      <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full shrink-0 self-start sm:self-auto">
+                        เป้าหมายพลังงาน ~ {meal.calories} kcal
                       </span>
                     </div>
 
-                    {/* ปุ่มสลับรูปแบบอาหาร 3 ทางเลือก (Large, comfortable touch targets) */}
+                    {/* ตัวเลือกสไตล์อาหาร 3 ทางเลือก พร้อมรูปภาพ Thumbnail แสดงหน้าตาอาหาร */}
                     <div className="space-y-2">
-                      <div className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                        เลือกสไตล์อาหารมื้อนี้ตามสะดวก:
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                          เลือกสไตล์อาหารสำหรับมื้อนี้:
+                        </span>
+                        <span className="text-[11px] text-emerald-600 font-medium">
+                          คลิกเพื่อสลับดูภาพและวิธีปรุง
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         {meal.options.map((opt, optIdx) => {
                           const isSelected = currentOptIdx === optIdx;
                           return (
@@ -2392,72 +2814,111 @@ export default function DashboardPage() {
                                   [idx]: optIdx,
                                 }))
                               }
-                              className={`min-h-[40px] px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 active:scale-[0.98] ${
+                              className={`p-2.5 rounded-2xl text-left transition flex items-center gap-3 active:scale-[0.98] border ${
                                 isSelected
-                                  ? "bg-white text-emerald-800 shadow-sm border border-zinc-200"
-                                  : "text-zinc-600 hover:text-zinc-900"
+                                  ? "bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-sm ring-2 ring-emerald-500/20"
+                                  : "bg-slate-50/80 hover:bg-slate-100/90 border-zinc-200/80 text-zinc-700"
                               }`}
                             >
-                              <span>
-                                {opt.category === "ตามสั่ง/นอกบ้าน"
-                                  ? "นอกบ้าน / ตามสั่ง"
-                                  : opt.category === "ทำเองง่ายๆ"
-                                  ? "ทำเอง (สูตร 2:1:1)"
-                                  : "พร้อมทานสะดวก"}
-                              </span>
+                              <img
+                                src={opt.imageUrl || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=120&q=80"}
+                                alt={opt.dish}
+                                className="w-12 h-12 rounded-xl object-cover shrink-0 border border-zinc-200/80 shadow-2xs"
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=120&q=80";
+                                }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <span className="text-xs font-bold block truncate text-zinc-900">
+                                  {opt.category === "ตามสั่ง/นอกบ้าน"
+                                    ? "นอกบ้าน / ตามสั่ง"
+                                    : opt.category === "ทำเองง่ายๆ"
+                                    ? "ทำเอง (สูตร 2:1:1)"
+                                    : "พร้อมทานสะดวก"}
+                                </span>
+                                <span className="text-[11px] text-zinc-500 block truncate mt-0.5">
+                                  {opt.dish}
+                                </span>
+                              </div>
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* รายละเอียดเมนูที่เลือก */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-zinc-200/80 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="text-base font-bold text-zinc-900 leading-snug">
-                          {activeOption.dish}
+                    {/* การ์ดนำเสนอเมนูแนะนำหลักที่เลือก (Featured Active Meal Card) */}
+                    <div className="rounded-3xl bg-slate-50/90 border border-zinc-200 overflow-hidden shadow-2xs">
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
+                        {/* ฝั่งภาพถ่ายอาหารความละเอียดสูงขนาดใหญ่ */}
+                        <div className="md:col-span-5 relative min-h-[220px] sm:min-h-[250px] md:min-h-[280px] bg-slate-200 overflow-hidden group">
+                          <img
+                            src={activeOption.imageUrl || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80"}
+                            alt={activeOption.imageAlt || activeOption.dish}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80";
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-black/20 pointer-events-none" />
+                          <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-emerald-900 shadow-md backdrop-blur-md">
+                            {activeOption.category}
+                          </span>
+                          <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-black/70 text-white backdrop-blur-md border border-white/10">
+                            โควต้า ~{meal.calories} kcal
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1 rounded-full shrink-0">
-                          {activeOption.category}
-                        </span>
-                      </div>
 
-                      {activeOption.orderingTip && (
-                        <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded-xl p-3 flex items-start gap-2.5 leading-relaxed">
-                          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                          <div>
-                            <strong className="text-zinc-900">เทคนิคการสั่ง/เตรียม:</strong>{" "}
-                            <span className="text-zinc-600">{activeOption.orderingTip}</span>
+                        {/* ฝั่งรายละเอียด เมนู / เทคนิค / สัดส่วนจาน / มาโคร */}
+                        <div className="md:col-span-7 p-5 sm:p-6 flex flex-col justify-between space-y-4">
+                          <div className="space-y-3">
+                            <h4 className="text-base sm:text-lg font-black text-zinc-900 leading-snug">
+                              {activeOption.dish}
+                            </h4>
+
+                            {activeOption.orderingTip && (
+                              <div className="text-xs text-zinc-700 bg-white border border-zinc-200 rounded-2xl p-3.5 flex items-start gap-2.5 leading-relaxed shadow-xs">
+                                <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                                <div>
+                                  <strong className="text-zinc-900 font-bold">เทคนิคการสั่ง / ปรุง:</strong>{" "}
+                                  <span className="text-zinc-600">{activeOption.orderingTip}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="text-xs text-teal-950 bg-teal-50/90 border border-teal-200/80 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5">
+                              <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                              </svg>
+                              <div>
+                                <strong className="font-bold text-teal-900">สัดส่วนจานสุขภาพ 2:1:1:</strong>{" "}
+                                <span className="font-medium text-teal-800">{activeOption.plateRatio}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* สัดส่วนมาโครสารอาหาร (Macronutrient Badges) */}
+                          <div className="pt-3 border-t border-zinc-200/70 flex flex-wrap items-center gap-3 text-xs font-mono">
+                            <div className="px-3 py-1 rounded-xl bg-white border border-zinc-200 flex items-center gap-1.5 shadow-2xs">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <span className="text-zinc-500 text-[10px]">โปรตีน:</span>
+                              <strong className="text-zinc-900 font-bold">{meal.protein}</strong>
+                            </div>
+                            <div className="px-3 py-1 rounded-xl bg-white border border-zinc-200 flex items-center gap-1.5 shadow-2xs">
+                              <span className="w-2 h-2 rounded-full bg-amber-500" />
+                              <span className="text-zinc-500 text-[10px]">คาร์บ:</span>
+                              <strong className="text-zinc-900 font-bold">{meal.carbs}</strong>
+                            </div>
+                            <div className="px-3 py-1 rounded-xl bg-white border border-zinc-200 flex items-center gap-1.5 shadow-2xs">
+                              <span className="w-2 h-2 rounded-full bg-sky-500" />
+                              <span className="text-zinc-500 text-[10px]">ไขมันดี:</span>
+                              <strong className="text-zinc-900 font-bold">{meal.fat}</strong>
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      <div className="text-xs text-teal-900 bg-teal-50 border border-teal-200/70 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
-                        <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                        </svg>
-                        <div>
-                          <strong>สัดส่วนจาน 2:1:1:</strong>{" "}
-                          <span className="font-medium text-teal-900">{activeOption.plateRatio}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* สัดส่วนมาโครของมื้อนี้ */}
-                    <div className="pt-1 flex items-center gap-4 text-xs font-mono text-zinc-600">
-                      <div>
-                        <span className="text-zinc-400 text-[10px]">โปรตีน:</span>{" "}
-                        <strong className="text-zinc-900 font-bold">{meal.protein}</strong>
-                      </div>
-                      <div>
-                        <span className="text-zinc-400 text-[10px]">คาร์บ:</span>{" "}
-                        <strong className="text-zinc-900 font-bold">{meal.carbs}</strong>
-                      </div>
-                      <div>
-                        <span className="text-zinc-400 text-[10px]">ไขมันดี:</span>{" "}
-                        <strong className="text-zinc-900 font-bold">{meal.fat}</strong>
                       </div>
                     </div>
                   </div>
@@ -2466,15 +2927,88 @@ export default function DashboardPage() {
             </div>
 
             {/* เคล็ดลับการจัดการอาหารตามงบประมาณ */}
-            <div className="p-5 rounded-3xl bg-white border border-zinc-200 shadow-sm text-xs space-y-2">
-              <h4 className="font-bold text-zinc-900">
-                คำแนะนำตามงบประมาณ ({assessment.foodBudget === "economy" ? "ประหยัด" : "ปานกลาง"}):
+            <div className="p-5 rounded-3xl bg-white border border-zinc-200 shadow-sm text-xs space-y-3">
+              <h4 className="font-bold text-zinc-900 flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                กลยุทธ์การจัดการอาหารตามงบประมาณ ({budgetLabelMap[assessment.foodBudget] || assessment.foodBudget}):
               </h4>
-              <p className="text-zinc-600 leading-relaxed">
-                • <strong>โปรตีนราคาประหยัด:</strong> ไข่ไก่, อกไก่สด, เต้าหู้ขาว และถั่วต้ม เป็นแหล่งโปรตีนคุณภาพสูงที่มีต้นทุนเฉลี่ยต่อกรัมต่ำที่สุด<br />
-                • <strong>คาร์โบไฮเดรตเชิงซ้อน:</strong> ข้าวกล้องผสมข้าวขาว และมันเทศนึ่ง อยู่ท้องนานและช่วยคุมระดับน้ำตาลในเลือดได้อย่างมีประสิทธิภาพ
-              </p>
+              {assessment.foodBudget === "economy" ? (
+                <div className="text-zinc-600 leading-relaxed space-y-1.5">
+                  <p>• <strong>โปรตีนคุ้มค่าราคาประหยัด:</strong> ไข่ไก่ยกแผง, อกไก่แช่แข็งยกกิโล, เต้าหู้ขาวก้อนละ 15 บาท, และถั่วเหลือง/ถั่วเขียวต้ม ให้โปรตีนสูงในราคาเฉลี่ยไม่เกิน 30-45 บาทต่อมื้อ</p>
+                  <p>• <strong>คาร์โบไฮเดรตเชิงซ้อน:</strong> ซื้อข้าวกล้องผสมข้าวขาวและฟักทอง/มันเทศไทยตามตลาดสด ช่วยประหยัดค่าใช้จ่ายได้มากกว่า 50% เมื่อเทียบกับการซื้ออาหารสำเร็จรูป</p>
+                </div>
+              ) : assessment.foodBudget === "flexible" ? (
+                <div className="text-zinc-600 leading-relaxed space-y-1.5">
+                  <p>• <strong>โปรตีนและไขมันดีระดับพรีเมียม:</strong> แซลมอนนอร์เวย์, เนื้อสันในเกรดนำเข้า, ปลาหิมะ, อะโวคาโด และน้ำมันมะกอก Extra Virgin คุณภาพสูง เพื่อสารอาหารและกรดไขมันโอเมก้า 3 สูงสุด</p>
+                  <p>• <strong>ความสะดวกสบายสูงสุด:</strong> สามารถเลือกสั่งบริการ Clean Food Delivery หรือ Meal Prep รายสัปดาห์ที่มีการคำนวณแคลอรี่และสารอาหารครบถ้วนเพื่อประหยัดเวลาเตรียมอาหาร</p>
+                </div>
+              ) : (
+                <div className="text-zinc-600 leading-relaxed space-y-1.5">
+                  <p>• <strong>สมดุลความสะดวกและคุณภาพ:</strong> เลือกซื้อเนื้อสัตว์สด เช่น สันในหมูไร้มัน อกไก่สด และปลากะพง/ปลาทับทิม ควบคู่กับสลัดกล่องและอกไก่นุ่มพร้อมทานในวันที่ไม่มีเวลาปรุงอาหาร</p>
+                  <p>• <strong>คาร์โบไฮเดรตหลากหลาย:</strong> สลับระหว่างข้าวไรซ์เบอร์รี่ ขนมปังโฮลวีตแท้ 100% และมันเทศญี่ปุ่นนึ่ง ให้ความอร่อยและคุมระดับน้ำตาลได้ดีเยี่ยม</p>
+                </div>
+              )}
             </div>
+
+            {/* คำแนะนำการรับประทานอาหารเสริมตามเวลาที่เหมาะสม (Personalized Supplement Guide) */}
+            {assessment.supplements && !assessment.supplements.includes("none") && assessment.supplements.length > 0 && (
+              <div className="p-5 rounded-3xl bg-white border border-zinc-200 shadow-sm text-xs space-y-3">
+                <h4 className="font-bold text-zinc-900 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                  ตารางเวลาและข้อแนะนำการรับประทานอาหารเสริมของคุณ (Optimal Supplement Timing):
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {assessment.supplements.includes("whey") && (
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                      <div className="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                        เวย์โปรตีน (Whey Protein):
+                      </div>
+                      <p className="text-zinc-600 text-[11px] leading-relaxed">
+                        • <strong>เวลาที่เหมาะสม:</strong> ดื่ม 1 สกู๊ป (โปรตีน 24-27g) ทันทีหลังฝึกเสร็จภายใน 30-45 นาที หรือใช้เสริมในมื้อที่โปรตีนจากอาหารหลักไม่ถึงเกณฑ์
+                      </p>
+                    </div>
+                  )}
+                  {assessment.supplements.includes("creatine") && (
+                    <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-200 space-y-1">
+                      <div className="font-bold text-teal-950 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-600" />
+                        ครีเอทีน (Creatine Monohydrate):
+                      </div>
+                      <p className="text-zinc-600 text-[11px] leading-relaxed">
+                        • <strong>เวลาที่เหมาะสม:</strong> ทานวันละ 3-5 กรัม สม่ำเสมอทุกวันในเวลาเดิม (แนะนำพร้อมมื้ออาหารหรือโปรตีนเชค) ช่วยเพิ่มพละกำลัง ATP ในกล้ามเนื้อ
+                      </p>
+                    </div>
+                  )}
+                  {assessment.supplements.includes("multivitamin") && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1">
+                      <div className="font-bold text-amber-950 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                        วิตามินรวม (Multivitamin):
+                      </div>
+                      <p className="text-zinc-600 text-[11px] leading-relaxed">
+                        • <strong>เวลาที่เหมาะสม:</strong> ทาน 1 เม็ดหลังอาหารมื้อแรกของวัน เพื่อให้วิตามินที่ละลายในไขมัน (A, D, E, K) ดูดซึมได้ดีที่สุด
+                      </p>
+                    </div>
+                  )}
+                  {assessment.supplements.includes("fish_oil") && (
+                    <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-1">
+                      <div className="font-bold text-sky-950 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-600" />
+                        น้ำมันปลา (Fish Oil / Omega-3):
+                      </div>
+                      <p className="text-zinc-600 text-[11px] leading-relaxed">
+                        • <strong>เวลาที่เหมาะสม:</strong> ทาน 1,000 - 2,000 mg พร้อมมื้ออาหารหลัก ช่วยลดการอักเสบ บำรุงข้อต่อ และการทำงานของหลอดเลือดหัวใจ
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

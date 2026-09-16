@@ -396,10 +396,16 @@ export default function AssessmentPage() {
       bodyScanResult,
       eatingStyle,
       dietType,
-      dislikedFoods,
-      otherDisliked,
-      foodAllergies,
-      otherAllergy,
+      dislikedFoods:
+        otherDisliked.trim() && dislikedFoods.includes("none")
+          ? dislikedFoods.filter((x) => x !== "none")
+          : dislikedFoods,
+      otherDisliked: otherDisliked.trim(),
+      foodAllergies:
+        otherAllergy.trim() && foodAllergies.includes("none")
+          ? foodAllergies.filter((x) => x !== "none")
+          : foodAllergies,
+      otherAllergy: otherAllergy.trim(),
       supplements,
       foodBudget,
       mealsPerDay,
@@ -1437,7 +1443,12 @@ export default function AssessmentPage() {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => toggleSelection(foodAllergies, setFoodAllergies, item.id)}
+                        onClick={() => {
+                          if (item.id === "none") {
+                            setOtherAllergy("");
+                          }
+                          toggleSelection(foodAllergies, setFoodAllergies, item.id);
+                        }}
                         className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${
                           isSelected
                             ? "bg-rose-500 border-rose-600 text-white shadow-sm"
@@ -1455,9 +1466,17 @@ export default function AssessmentPage() {
                   <input
                     id={otherAllergyId}
                     type="text"
-                    placeholder="ระบุอาการแพ้อาหารอื่นๆ เพิ่มเติม (เช่น แพ้เห็ด, แพ้ผลไม้เปลือกแข็ง)"
+                    placeholder="ระบุอาการแพ้อาหารอื่นๆ เพิ่มเติม (เช่น แพ้เห็ด, แพ้ผลไม้เปลือกแข็ง, แพ้กุ้ง)"
                     value={otherAllergy}
-                    onChange={(e) => setOtherAllergy(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setOtherAllergy(val);
+                      if (val.trim() !== "") {
+                        setFoodAllergies((prev) => prev.filter((x) => x !== "none"));
+                      } else if (foodAllergies.filter((x) => x !== "none").length === 0) {
+                        setFoodAllergies(["none"]);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs text-zinc-900 focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -1475,7 +1494,12 @@ export default function AssessmentPage() {
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => toggleSelection(dislikedFoods, setDislikedFoods, item.id)}
+                        onClick={() => {
+                          if (item.id === "none") {
+                            setOtherDisliked("");
+                          }
+                          toggleSelection(dislikedFoods, setDislikedFoods, item.id);
+                        }}
                         className={`px-3 py-2 rounded-xl text-xs font-medium border transition ${
                           isSelected
                             ? "bg-teal-600 border-teal-700 text-white shadow-sm"
@@ -1494,7 +1518,15 @@ export default function AssessmentPage() {
                     type="text"
                     placeholder="ระบุอาหารที่ไม่ทานอื่นๆ เพิ่มเติม (ถ้ามี)"
                     value={otherDisliked}
-                    onChange={(e) => setOtherDisliked(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setOtherDisliked(val);
+                      if (val.trim() !== "") {
+                        setDislikedFoods((prev) => prev.filter((x) => x !== "none"));
+                      } else if (dislikedFoods.filter((x) => x !== "none").length === 0) {
+                        setDislikedFoods(["none"]);
+                      }
+                    }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs text-zinc-900 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1759,12 +1791,86 @@ export default function AssessmentPage() {
                 {/* อาหารที่แพ้ Hard filter */}
                 <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-950">
                   <strong className="text-teal-800">การคัดกรองสารก่อภูมิแพ้ (Hard Filter 100%):</strong>{" "}
-                  {foodAllergies.includes("none")
-                    ? "ไม่มีประวัติแพ้อาหาร สามารถทานได้หลากหลายกลุ่มสารอาหาร"
-                    : `ห้ามแนะนำเมนูที่มี ${foodAllergies
-                        .map((id) => ALLERGY_OPTIONS.find((a) => a.id === id)?.label)
-                        .filter(Boolean)
-                        .join(", ")} ${otherAllergy ? `และ ${otherAllergy}` : ""} โดยเด็ดขาด`}
+                  {(() => {
+                    const selectedList = foodAllergies
+                      .filter((id) => id !== "none")
+                      .map((id) => ALLERGY_OPTIONS.find((a) => a.id === id)?.label)
+                      .filter(Boolean) as string[];
+                    const customAllergy = otherAllergy?.trim();
+                    const allAllergies = [...selectedList, ...(customAllergy ? [customAllergy] : [])];
+
+                    if (allAllergies.length === 0) {
+                      return "ไม่มีประวัติแพ้อาหาร สามารถทานได้หลากหลายกลุ่มสารอาหาร";
+                    }
+                    return `ห้ามแนะนำเมนูที่มี ${allAllergies.join(", ")} โดยเด็ดขาด`;
+                  })()}
+                </div>
+
+                {/* อาหารที่ไม่ชอบหรือไม่รับประทาน */}
+                <div className="p-3 rounded-xl bg-orange-50/80 border border-orange-200 text-orange-950">
+                  <strong className="text-orange-800">อาหารที่ไม่ชอบหรือไม่รับประทาน:</strong>{" "}
+                  {(() => {
+                    const selectedDisliked = dislikedFoods
+                      .filter((id) => id !== "none")
+                      .map((id) => DISLIKED_FOODS.find((d) => d.id === id)?.label)
+                      .filter(Boolean) as string[];
+                    const customDisliked = otherDisliked?.trim();
+                    const allDisliked = [...selectedDisliked, ...(customDisliked ? [customDisliked] : [])];
+
+                    if (allDisliked.length === 0) {
+                      return "ทานได้ทุกอย่าง ไม่มีข้อจำกัดด้านความชอบอาหาร";
+                    }
+                    return `ปรับลดหรือหลีกเลี่ยงเมนูที่มี: ${allDisliked.join(", ")}`;
+                  })()}
+                </div>
+
+                {/* รูปแบบอาหารและสไตล์การกิน */}
+                <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-950">
+                  <strong className="text-emerald-800">แนวทางโภชนาการและรูปแบบการกิน:</strong>{" "}
+                  {(() => {
+                    const dietTypeLabels: Record<string, string> = {
+                      general: "ทานทุกอย่างทั่วไป",
+                      clean: "เน้นอาหารคลีน / โซเดียมต่ำ",
+                      vegetarian: "มังสวิรัติ (ไม่ทานเนื้อสัตว์)",
+                      vegan: "วีแกน (พืช 100%)",
+                      keto: "คีโตจีนิก (ไขมันสูง แป้งต่ำ)",
+                      halal: "ฮาลาล (Halal ไม่ทานเนื้อหมู)",
+                    };
+                    const eatingStyleLabels: Record<string, string> = {
+                      street_food: "ทานนอกบ้าน / อาหารตามสั่ง",
+                      home_cook: "ทำอาหารทานเอง",
+                      mixed: "ผสมผสานตามสะดวก",
+                    };
+                    return `รูปแบบอาหาร: ${dietTypeLabels[dietType] || dietType} • สไตล์การจัดการ: ${eatingStyleLabels[eatingStyle] || eatingStyle}`;
+                  })()}
+                </div>
+
+                {/* มื้ออาหารและงบประมาณ */}
+                <div className="p-3 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-950">
+                  <strong className="text-blue-800">การจัดสรรพลังงานและงบประมาณ:</strong>{" "}
+                  {(() => {
+                    const budgetLabels: Record<string, string> = {
+                      economy: "ประหยัด (< 1,500 บ./สัปดาห์)",
+                      moderate: "ปานกลาง (1,500 - 3,000 บ./สัปดาห์)",
+                      flexible: "ยืดหยุ่นสูง (> 3,000 บ./สัปดาห์)",
+                    };
+                    return `แบ่งรับประทานวันละ ${mealsPerDay} มื้อ (${Math.round((tdee + calorieAdjustment) / mealsPerDay)} kcal/มื้อ) • งบประมาณ: ${budgetLabels[foodBudget] || foodBudget}`;
+                  })()}
+                </div>
+
+                {/* อาหารเสริมที่ใช้อยู่ */}
+                <div className="p-3 rounded-xl bg-purple-50/80 border border-purple-200 text-purple-950">
+                  <strong className="text-purple-800">อาหารเสริมในโปรแกรม:</strong>{" "}
+                  {(() => {
+                    const selectedSupplements = supplements
+                      .filter((id) => id !== "none")
+                      .map((id) => SUPPLEMENTS.find((s) => s.id === id)?.label)
+                      .filter(Boolean);
+                    if (selectedSupplements.length === 0) {
+                      return "ไม่ได้ใช้อาหารเสริม (เน้นรับสารอาหารครบถ้วนจากอาหารธรรมชาติ 100%)";
+                    }
+                    return `ใช้อาหารเสริม: ${selectedSupplements.join(", ")} (ระบบจะจัดเวลาทานที่เหมาะสมคู่กับมื้ออาหาร)`;
+                  })()}
                 </div>
 
                 {/* ข้อจำกัดร่างกาย */}
