@@ -29,51 +29,50 @@ jobs:
         run: |
           CLEAN_USER=$(echo "$VPS_USER" | tr -d '[:space:]')
           CLEAN_HOST=$(echo "$VPS_HOST" | tr -d '[:space:]')
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "$CLEAN_USER@$CLEAN_HOST" << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key "$CLEAN_USER@$CLEAN_HOST" "
             set -e
 
-            echo "🔑 [1/4] Adding friend's SSH public key..."
-            FRIEND_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILJuGqX/pYECJX7ZZlTYnvktuaQHjDm+pZjctcr4J6wA dormloop-deploy"
+            echo '🔑 [1/4] Adding friend SSH public key...'
+            FRIEND_KEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILJuGqX/pYECJX7ZZlTYnvktuaQHjDm+pZjctcr4J6wA dormloop-deploy'
             mkdir -p ~/.ssh
             touch ~/.ssh/authorized_keys
-            if ! grep -Fq "$FRIEND_KEY" ~/.ssh/authorized_keys; then
-              echo "$FRIEND_KEY" >> ~/.ssh/authorized_keys
-              echo "✅ Friend SSH key added successfully."
+            if ! grep -Fq \"\$FRIEND_KEY\" ~/.ssh/authorized_keys; then
+              echo \"\$FRIEND_KEY\" >> ~/.ssh/authorized_keys
+              echo '✅ Friend SSH key added successfully.'
             else
-              echo "ℹ️ Friend SSH key already exists in authorized_keys."
+              echo 'ℹ️ Friend SSH key already exists in authorized_keys.'
             fi
             chmod 700 ~/.ssh
             chmod 600 ~/.ssh/authorized_keys
 
-            echo "📁 [2/4] Creating ~/dormloop directory..."
+            echo '📁 [2/4] Creating ~/dormloop directory...'
             mkdir -p ~/dormloop
 
-            echo "🌐 [3/4] Configuring Nginx for dormloop.shop on port 3002..."
-            sudo tee /etc/nginx/conf.d/dormloop.conf > /dev/null << 'NGINX_CONF'
-server {
-    listen 80;
-    server_name dormloop.shop www.dormloop.shop;
-
-    location / {
-        proxy_pass http://127.0.0.1:3002;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-NGINX_CONF
+            echo '🌐 [3/4] Configuring Nginx for dormloop.shop on port 3002...'
+            printf '%s\n' \
+              'server {' \
+              '    listen 80;' \
+              '    server_name dormloop.shop www.dormloop.shop;' \
+              '' \
+              '    location / {' \
+              '        proxy_pass http://127.0.0.1:3002;' \
+              '        proxy_http_version 1.1;' \
+              '        proxy_set_header Upgrade \$http_upgrade;' \
+              '        proxy_set_header Connection \"upgrade\";' \
+              '        proxy_set_header Host \$host;' \
+              '        proxy_cache_bypass \$http_upgrade;' \
+              '        proxy_set_header X-Real-IP \$remote_addr;' \
+              '        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;' \
+              '        proxy_set_header X-Forwarded-Proto \$scheme;' \
+              '    }' \
+              '}' | sudo tee /etc/nginx/conf.d/dormloop.conf > /dev/null
 
             sudo nginx -t
             sudo systemctl reload nginx
-            echo "✅ Nginx configured and reloaded."
+            echo '✅ Nginx configured and reloaded.'
 
-            echo "🔒 [4/4] Issuing SSL certificate with Certbot..."
+            echo '🔒 [4/4] Issuing SSL certificate with Certbot...'
             sudo certbot --nginx -d dormloop.shop -d www.dormloop.shop --non-interactive --agree-tos --register-unsafely-without-email --redirect || true
 
-            echo "🎉 [DONE] DormLoop VPS setup completed successfully!"
-          EOF
+            echo '🎉 [DONE] DormLoop VPS setup completed successfully!'
+          "
