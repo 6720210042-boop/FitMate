@@ -497,7 +497,10 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
                 <div className="mt-3">
-                  <div className="text-2xl font-black text-white tracking-tight">157.254.192.71</div>
+                  <div className="text-2xl font-black text-emerald-400 tracking-tight flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                    ONLINE
+                  </div>
                   <p className="text-xs text-slate-400 mt-1 truncate">
                     dogaomshoo.online (SSL Active)
                   </p>
