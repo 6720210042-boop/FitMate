@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -49,7 +49,8 @@ export default function AdminDashboardPage() {
   // Tab State: 'overview' | 'users' | 'fitness' | 'logs' | 'system'
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "fitness" | "logs" | "system">("overview");
 
-  // Authentication & Users State
+  // Authentication & Access Control State
+  const [authStatus, setAuthStatus] = useState<"checking" | "authorized">("checking");
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string; role?: string } | null>(null);
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [assessments, setAssessments] = useState<Record<string, AssessmentData>>({});
@@ -69,17 +70,32 @@ export default function AdminDashboardPage() {
   const [isTestingMail, setIsTestingMail] = useState(false);
   const [testMailResult, setTestMailResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  // โหลดข้อมูลเริ่มต้น
+  const fetchAuditLogs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/logs");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.logs) {
+          setAuditLogs(data.logs);
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
+
+  // โหลดข้อมูลเริ่มต้นและตรวจสอบสิทธิ์แอดมิน
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // 1. ตรวจสอบผู้ใช้ปัจจุบัน
+      // 1. ตรวจสอบผู้ใช้ปัจจุบันและสิทธิ์แอดมิน
       const userStored = localStorage.getItem("fitmate_user");
+      let activeUser: { email: string; name: string; role?: string; loggedIn?: boolean } | null = null;
       if (userStored) {
         try {
-          const user = JSON.parse(userStored);
-          setCurrentUser(user);
+          activeUser = JSON.parse(userStored);
+          queueMicrotask(() => setCurrentUser(activeUser));
         } catch {
-          // ignore
+          activeUser = null;
         }
       }
 
@@ -108,15 +124,37 @@ export default function AdminDashboardPage() {
         });
         localStorage.setItem("fitmate_accounts", JSON.stringify(loadedAccounts));
       }
-      setAccounts(loadedAccounts);
+      queueMicrotask(() => setAccounts(loadedAccounts));
+
+      // ตรวจสอบสิทธิ์การเข้าถึง - อนุญาตเฉพาะฝ่ายแอดมินเท่านั้น คนอื่นเข้าไม่ได้
+      if (!activeUser || !activeUser.email || !activeUser.loggedIn) {
+        // ยังไม่ได้เข้าสู่ระบบ -> ส่งไปหน้าเข้าสู่ระบบหลักทันที
+        router.replace("/login");
+        return;
+      }
+
+      const isAdmin =
+        activeUser.role === "admin" ||
+        activeUser.email.toLowerCase() === "adminchin@fitmate.app" ||
+        activeUser.email.toLowerCase() === "pathomphon7n@gmail.com";
+
+      if (!isAdmin) {
+        // ไม่มีสิทธิ์แอดมิน -> ส่งกลับหน้าแดชบอร์ดทันที คนอื่นไม่สามารถเข้าได้
+        router.replace("/dashboard");
+        return;
+      }
+
+      queueMicrotask(() => setAuthStatus("authorized"));
 
       // 3. โหลดข้อมูลประเมินสุขภาพ
       const assessmentStored = localStorage.getItem("fitmate_assessment");
       if (assessmentStored) {
         try {
           const parsed = JSON.parse(assessmentStored);
-          setAssessments({
-            "pathomphon7n@gmail.com": parsed,
+          queueMicrotask(() => {
+            setAssessments({
+              "pathomphon7n@gmail.com": parsed,
+            });
           });
         } catch {
           // ignore
@@ -125,21 +163,18 @@ export default function AdminDashboardPage() {
     }
 
     // 4. โหลด Audit Logs จาก Server API
-    fetchAuditLogs();
-  }, []);
+    queueMicrotask(() => {
+      fetchAuditLogs();
+    });
+  }, [router, fetchAuditLogs]);
 
-  const fetchAuditLogs = async () => {
-    try {
-      const res = await fetch("/api/admin/logs");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.logs) {
-          setAuditLogs(data.logs);
-        }
-      }
-    } catch {
-      // fallback
+  // ออกจากระบบแอดมิน
+  const handleAdminSignOut = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("fitmate_user");
     }
+    setCurrentUser(null);
+    router.replace("/login");
   };
 
   const showNotification = (text: string, type: "success" | "error" = "success") => {
@@ -208,7 +243,7 @@ export default function AdminDashboardPage() {
       } else {
         showNotification(data.error || "ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบการตั้งค่า SMTP", "error");
       }
-    } catch (err: any) {
+    } catch {
       showNotification("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์", "error");
     } finally {
       setIsSendingResetEmail(null);
@@ -237,7 +272,7 @@ export default function AdminDashboardPage() {
       } else {
         setTestMailResult({ success: false, message: data.error || "เกิดข้อผิดพลาดในการส่ง" });
       }
-    } catch (err: any) {
+    } catch {
       setTestMailResult({ success: false, message: "เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์" });
     } finally {
       setIsTestingMail(false);
@@ -263,6 +298,27 @@ export default function AdminDashboardPage() {
   const activeUsersCount = accounts.filter((a) => a.status !== "suspended").length;
   const assessedUsersCount = Object.keys(assessments).length;
 
+  // กำลังตรวจสอบสิทธิ์ / ยังไม่ได้รับสิทธิ์ (ระหว่าง redirect)
+  if (authStatus !== "authorized") {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30 animate-pulse font-black text-white text-xl">
+            FM
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <svg className="animate-spin h-4 w-4 text-purple-400" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            <span>กำลังตรวจสอบสิทธิ์ฝ่ายผู้ดูแลระบบ...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. กรณีได้รับอนุญาต (Authorized Admin) - แสดงแดชบอร์ดเต็มรูปแบบ
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col antialiased">
       {/* ---------------- แถบแจ้งเตือน Action Notification ---------------- */}
@@ -328,6 +384,18 @@ export default function AdminDashboardPage() {
             </svg>
             <span>กลับหน้าแอปหลัก</span>
           </Link>
+
+          {/* ปุ่มออกจากระบบแอดมิน */}
+          <button
+            onClick={handleAdminSignOut}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-800/80 transition"
+            title="ออกจากระบบฝ่ายผู้ดูแลระบบ"
+          >
+            <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span className="hidden sm:inline">ออกจากระบบแอดมิน</span>
+          </button>
         </div>
       </header>
 
@@ -633,7 +701,7 @@ export default function AdminDashboardPage() {
                 <span className="text-xs text-slate-400">สถานะ:</span>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "suspended")}
                   className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-emerald-500"
                 >
                   <option value="all">ทั้งหมด ({accounts.length})</option>

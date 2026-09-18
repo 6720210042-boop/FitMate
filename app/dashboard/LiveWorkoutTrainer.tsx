@@ -138,7 +138,9 @@ export default function LiveWorkoutTrainer({
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
           navigator.userAgent
         ) || window.innerWidth < 768;
-      setIsMobileDevice(mobile);
+      queueMicrotask(() => {
+        setIsMobileDevice(mobile);
+      });
     }
   }, []);
 
@@ -787,7 +789,7 @@ export default function LiveWorkoutTrainer({
 
             <div className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl p-3 text-left text-[11px] text-zinc-300 mb-4 space-y-1.5">
               <div className="font-bold text-emerald-400">💡 เคล็ดลับการเปิดกล้องบนมือถือ:</div>
-              <div>• <strong>iOS (iPhone/iPad):</strong> เข้า การตั้งค่า &gt; Safari &gt; กล้อง และเลือก "อนุญาต"</div>
+              <div>• <strong>iOS (iPhone/iPad):</strong> เข้า การตั้งค่า &gt; Safari &gt; กล้อง และเลือก &quot;อนุญาต&quot;</div>
               <div>• <strong>Android:</strong> แตะไอคอนแม่กุญแจหน้า URL ใน Chrome &gt; การตั้งค่าไซต์ &gt; อนุญาตกล้อง</div>
               <div>• หากเปิดผ่าน IP วงแลน (เช่น http://192.168.x.x) เบราว์เซอร์มือถือจะบล็อกกล้องเพื่อความปลอดภัย แนะนำให้ทดสอบผ่าน localhost หรือตั้งค่า HTTPS</div>
             </div>

@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
         setCountdown((prev) => prev - 1);
       }, 1000);
     } else if (countdown === 0) {
-      setCanResend(true);
+      queueMicrotask(() => setCanResend(true));
     }
     return () => clearInterval(timer);
   }, [step, countdown]);
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
         setIsLoading(false);
         setErrorMessage(data.error || "ไม่สามารถส่งอีเมลได้ กรุณาตรวจสอบการตั้งค่าอีเมล");
       }
-    } catch (err) {
+    } catch {
       setIsLoading(false);
       setErrorMessage("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง");
     }

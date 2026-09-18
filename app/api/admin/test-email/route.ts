@@ -82,21 +82,22 @@ export async function POST(request: Request) {
       success: true,
       message: `ส่งอีเมลทดสอบไปยัง ${normalizedEmail} สำเร็จเรียบร้อยแล้ว`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[FitMate Test Email Error]:", error);
+    const errorMessage = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเชื่อมต่อ SMTP";
 
     addAuditLog({
       type: "TEST_EMAIL",
       email: "unknown",
       action: "ทดสอบส่งอีเมลจาก Admin Dashboard",
       status: "FAILED",
-      details: error?.message || "เชื่อมต่อ SMTP ล้มเหลว",
+      details: errorMessage,
     });
 
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ SMTP",
+        error: errorMessage,
       },
       { status: 500 }
     );

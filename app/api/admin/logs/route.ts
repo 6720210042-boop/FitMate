@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       success: true,
       log: newLog,
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
       { success: false, error: "ไม่สามารถบันทึก Log ได้" },
       { status: 500 }
