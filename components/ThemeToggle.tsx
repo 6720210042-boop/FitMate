@@ -17,7 +17,7 @@ export default function ThemeToggle({ showLabel = false, className = "" }: Theme
   }, []);
 
   useEffect(() => {
-    syncThemeState();
+    queueMicrotask(() => syncThemeState());
 
     // เฝ้าตรวจการเปลี่ยนแปลง class บน <html> แบบ Real-time
     const root = document.documentElement;
@@ -70,8 +70,9 @@ export default function ThemeToggle({ showLabel = false, className = "" }: Theme
     e.preventDefault();
     e.stopPropagation();
 
-    if (typeof window !== "undefined" && typeof (window as any).__toggleFitMateTheme === "function") {
-      const nextDark = (window as any).__toggleFitMateTheme();
+    const win = typeof window !== "undefined" ? (window as unknown as { __toggleFitMateTheme?: () => boolean }) : null;
+    if (win && typeof win.__toggleFitMateTheme === "function") {
+      const nextDark = win.__toggleFitMateTheme();
       setIsDark(nextDark);
     } else if (typeof document !== "undefined") {
       const root = document.documentElement;

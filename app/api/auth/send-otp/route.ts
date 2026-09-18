@@ -121,23 +121,22 @@ export async function POST(request: Request) {
       success: true,
       message: `ส่งรหัสยืนยันไปยังอีเมล ${normalizedEmail} เรียบร้อยแล้ว กรุณาตรวจสอบกล่องจดหมาย`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[FitMate Mailer Error]:", error);
+    const errorMessage = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเชื่อมต่อระบบส่งอีเมล";
 
     addAuditLog({
       type: "OTP_REQUEST",
-      email: (error?.email || "unknown").toString(),
+      email: "unknown",
       action: "ร้องขอรหัส OTP รีเซ็ตรหัสผ่าน",
       status: "FAILED",
-      details: error?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อระบบส่งอีเมล",
+      details: errorMessage,
     });
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error?.message ||
-          "เกิดข้อผิดพลาดในการส่งอีเมล กรุณาตรวจสอบการตั้งค่าอีเมลของเซิร์ฟเวอร์",
+        error: errorMessage,
       },
       { status: 500 }
     );

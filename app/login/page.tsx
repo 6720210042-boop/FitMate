@@ -5,9 +5,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 
+interface UserAccount {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+  status?: string;
+  createdAt?: string;
+  lastLogin?: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -20,31 +30,23 @@ export default function LoginPage() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedInput = identifier.toLowerCase().trim();
 
     // ตรวจสอบข้อมูลเบื้องต้น
-    if (!normalizedEmail || !password) {
-      setErrorMessage("กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน");
+    if (!normalizedInput || !password) {
+      setErrorMessage("กรุณากรอกอีเมล/ชื่อผู้ใช้ และรหัสผ่านให้ครบถ้วน");
       return;
     }
 
     setIsLoading(true);
 
     setTimeout(() => {
-      let matchedName = normalizedEmail.split("@")[0];
       let isAuthenticated = false;
+      let matchedUser: UserAccount | null = null;
 
       if (typeof window !== "undefined") {
-        // ตรวจสอบกับบัญชีที่เคยสมัครไว้ในระบบ (fitmate_accounts)
-        let accounts: Array<{
-          name: string;
-          email: string;
-          password: string;
-          role?: string;
-          status?: string;
-          createdAt?: string;
-          lastLogin?: string;
-        }> = [];
+        // โหลดบัญชีผู้ใช้ทั้งหมดจาก localStorage (fitmate_accounts)
+        let accounts: UserAccount[] = [];
         try {
           const stored = localStorage.getItem("fitmate_accounts");
           if (stored) accounts = JSON.parse(stored);
@@ -52,7 +54,7 @@ export default function LoginPage() {
           accounts = [];
         }
 
-        // รับประกันว่าบัญชี adminchin@fitmate.app พร้อมใช้งานเสมอ
+        // รับประกันว่าบัญชีแอดมินหลัก adminchin@fitmate.app พร้อมใช้งานเสมอ
         const chinAdminIndex = accounts.findIndex((a) => a.email === "adminchin@fitmate.app");
         if (chinAdminIndex === -1) {
           accounts.unshift({
@@ -63,7 +65,7 @@ export default function LoginPage() {
             status: "active",
             createdAt: new Date().toISOString(),
             lastLogin: new Date().toISOString(),
-          } as any);
+          });
           localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
         } else {
           accounts[chinAdminIndex].password = "dogchin123./";
@@ -72,7 +74,12 @@ export default function LoginPage() {
           localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
         }
 
-        const found = accounts.find((a) => a.email === normalizedEmail) as any;
+        // ค้นหาบัญชีด้วยอีเมล หรือ ชื่อผู้ใช้
+        const found = accounts.find((a) =>
+          a.email.toLowerCase() === normalizedInput ||
+          (a.name && a.name.toLowerCase() === normalizedInput)
+        );
+
         if (found) {
           if (found.status === "suspended") {
             setIsLoading(false);
@@ -81,18 +88,18 @@ export default function LoginPage() {
           }
 
           if (found.password === password) {
-            matchedName = found.name;
+            matchedUser = found;
             isAuthenticated = true;
-            // อัปเดต lastLogin
+
+            // ตรวจสอบสิทธิ์ว่าเป็นแอดมินหรือไม่
+            const isAdmin =
+              found.role === "admin" ||
+              found.email.toLowerCase() === "adminchin@fitmate.app" ||
+              found.email.toLowerCase() === "pathomphon7n@gmail.com";
+
+            // อัปเดตเวลาล็อกอินล่าสุดและบทบาท
             found.lastLogin = new Date().toISOString();
-            if (!found.role) {
-              found.role =
-                normalizedEmail === "adminchin@fitmate.app" ||
-                normalizedEmail === "pathomphon7n@gmail.com" ||
-                normalizedEmail.startsWith("admin@")
-                  ? "admin"
-                  : "user";
-            }
+            found.role = isAdmin ? "admin" : (found.role || "user");
             localStorage.setItem("fitmate_accounts", JSON.stringify(accounts));
           } else {
             setIsLoading(false);
@@ -101,26 +108,28 @@ export default function LoginPage() {
           }
         } else {
           setIsLoading(false);
-          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาสมัครสมาชิกใหม่ก่อนเข้าใช้งาน");
+          setErrorMessage("ไม่พบบัญชีผู้ใช้นี้ กรุณาตรวจสอบข้อมูลหรือสมัครสมาชิกใหม่");
           return;
         }
       }
 
-      if (isAuthenticated) {
+      if (isAuthenticated && matchedUser) {
         setIsLoading(false);
-        setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...");
+        const isAdmin = matchedUser.role === "admin";
+
+        if (isAdmin) {
+          setSuccessMessage("เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับผู้ดูแลระบบ กำลังนำท่านเข้าสู่ระบบ...");
+        } else {
+          setSuccessMessage("เข้าสู่ระบบสำเร็จ! กำลังนำท่านเข้าสู่ระบบ...");
+        }
 
         let hasAssessment = false;
         if (typeof window !== "undefined") {
-          const isAdmin =
-            normalizedEmail === "adminchin@fitmate.app" ||
-            normalizedEmail === "pathomphon7n@gmail.com" ||
-            normalizedEmail.startsWith("admin@");
           localStorage.setItem(
             "fitmate_user",
             JSON.stringify({
-              email: normalizedEmail,
-              name: matchedName,
+              email: matchedUser.email,
+              name: matchedUser.name,
               role: isAdmin ? "admin" : "user",
               loggedIn: true,
             })
@@ -129,9 +138,14 @@ export default function LoginPage() {
         }
 
         setTimeout(() => {
-          // หากมีข้อมูลประเมินแล้วให้ไปที่แดชบอร์ดทันที หากยังไม่มีให้ไปทำแบบประเมิน
-          router.push(hasAssessment ? "/dashboard" : "/assessment");
-        }, 1000);
+          if (isAdmin) {
+            // แอดมินนำทางตรงไปยังหน้าแอดมิน (หรือแดชบอร์ดตามสิทธิ์)
+            router.push("/admin");
+          } else {
+            // ผู้ใช้ทั่วไป หากมีข้อมูลประเมินแล้วไปที่แดชบอร์ด หากยังไม่มีให้ไปทำแบบประเมิน
+            router.push(hasAssessment ? "/dashboard" : "/assessment");
+          }
+        }, 800);
       }
     }, 500);
   };
@@ -148,31 +162,22 @@ export default function LoginPage() {
           href="/"
           className="inline-flex items-center text-xs text-zinc-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition gap-1.5 font-medium"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           กลับหน้าหลัก
         </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-            FitMate Member
+            FitMate Login
           </span>
         </div>
       </div>
 
       {/* กล่องการ์ดเข้าสู่ระบบ */}
       <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-zinc-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl shadow-zinc-200/50 dark:shadow-slate-950/60 backdrop-blur-xl relative z-10">
+        {/* ส่วนหัวของการ์ด */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white font-black text-xl shadow-md shadow-emerald-500/20 mb-2">
             FM
@@ -181,46 +186,27 @@ export default function LoginPage() {
             เข้าสู่ระบบ <span className="text-emerald-600 dark:text-emerald-400">FitMate</span>
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-slate-400 mt-1">
-            ก้าวต่อไปสู่เป้าหมายสุขภาพและรูปร่างที่ดีขึ้น
+            เข้าสู่ระบบเพื่อใช้งานตามสิทธิ์ของคุณ (ระบบจะตรวจสอบสิทธิ์อัตโนมัติ)
           </p>
         </div>
 
         {/* ข้อความแจ้งเตือนข้อผิดพลาด */}
         {errorMessage && (
-          <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-            <svg
-              className="w-4 h-4 shrink-0 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+          <div className="mb-5 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-700 dark:text-red-300 text-xs flex items-start gap-2">
+            <svg className="w-4 h-4 shrink-0 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{errorMessage}</span>
+            <span className="font-medium">{errorMessage}</span>
           </div>
         )}
 
+        {/* ข้อความแจ้งเตือนความสำเร็จ */}
         {successMessage && (
-          <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-            <svg
-              className="w-4 h-4 shrink-0 text-emerald-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
+          <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>{successMessage}</span>
+            <span className="font-medium">{successMessage}</span>
           </div>
         )}
 
@@ -228,16 +214,16 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              อีเมล
+              อีเมล หรือ ชื่อผู้ใช้
             </label>
             <input
-              type="email"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="กรอกอีเมลของคุณ"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="กรอกอีเมลหรือชื่อผู้ใช้ของคุณ"
               className="w-full px-4 py-2.5 rounded-xl bg-zinc-50 dark:bg-slate-800 border border-zinc-200 dark:border-slate-700 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
@@ -266,7 +252,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition p-1"
                 title={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
               >
                 {showPassword ? (
@@ -289,16 +275,16 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                className="w-4 h-4 rounded border-zinc-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-xs text-zinc-600">จดจำฉันไว้ในระบบ</span>
+              <span className="text-xs text-zinc-600 dark:text-slate-400">จดจำฉันไว้ในระบบ</span>
             </label>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:from-emerald-600 hover:to-teal-700 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -308,19 +294,8 @@ export default function LoginPage() {
                   fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8H4z"
-                  />
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 กำลังเข้าสู่ระบบ...
               </>
@@ -330,12 +305,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-zinc-100 text-center">
-          <p className="text-xs text-zinc-500">
+        <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-slate-800 text-center">
+          <p className="text-xs text-zinc-500 dark:text-slate-400">
             ยังไม่มีบัญชี FitMate?{" "}
             <Link
               href="/register"
-              className="text-emerald-600 font-semibold hover:text-emerald-700 transition"
+              className="text-emerald-600 dark:text-emerald-400 font-semibold hover:text-emerald-700 transition"
             >
               สมัครสมาชิกใหม่
             </Link>

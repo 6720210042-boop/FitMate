@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LiveWorkoutTrainer from "./LiveWorkoutTrainer";
 import ExerciseDemoView from "./ExerciseDemoView";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -152,10 +153,11 @@ const supplementLabelMap: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [assessment, setAssessment] = useState<AssessmentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "workout" | "nutrition">("overview");
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role?: string } | null>(null);
   // ตัวเลือกเมนูที่กำลังแสดงในแต่ละมื้อ (index มื้อ -> index ตัวเลือก 0, 1, 2)
   const [selectedMealChoices, setSelectedMealChoices] = useState<Record<number, number>>({});
 
@@ -382,7 +384,7 @@ export default function DashboardPage() {
       const confirmed = window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?");
       if (confirmed) {
         localStorage.removeItem("fitmate_user");
-        window.location.href = "/login";
+        router.push("/login");
       }
     }
   };
@@ -490,8 +492,8 @@ export default function DashboardPage() {
       (assessment.workoutIntensity === "intense"
         ? "advanced"
         : assessment.currentActivityLevel === "none" || assessment.workoutIntensity === "light"
-        ? "beginner"
-        : "intermediate");
+          ? "beginner"
+          : "intermediate");
 
     const days = [];
 
@@ -574,8 +576,8 @@ export default function DashboardPage() {
         name: hasShoulderIssue
           ? "Park Bench Incline Push-ups (วิดพื้นกับพนักพิงม้านั่งสวน)"
           : userExp === "beginner"
-          ? "Park Bench Incline Push-ups (วิดพื้นวางมือบนม้านั่งสวน)"
-          : "Park Bench Feet-Elevated Push-ups (วิดพื้นวางเท้าบนม้านั่งสร้างอกบน)",
+            ? "Park Bench Incline Push-ups (วิดพื้นวางมือบนม้านั่งสวน)"
+            : "Park Bench Feet-Elevated Push-ups (วิดพื้นวางเท้าบนม้านั่งสร้างอกบน)",
         phase: "main",
         sets: isChestFocus ? "4 เซ็ต (โฟกัสพิเศษ)" : "3 เซ็ต",
         reps: "10-15 ครั้ง",
@@ -1176,6 +1178,7 @@ export default function DashboardPage() {
     if (avoidPoultry) safetyBadges.push("ปลอดสัตว์ปีก/ไก่");
     if (avoidRedMeat) safetyBadges.push("ปลอดเนื้อแดง/วัว");
     if (isDislikeSpicy) safetyBadges.push("สูตรไม่เผ็ด");
+    if (isDislikeVeg) safetyBadges.push("ลดผัก/ทานง่าย");
     if (isKeto) safetyBadges.push("คีโตเจนิก (คาร์บต่ำพิเศษ)");
     if (isClean) safetyBadges.push("คลีนฟู้ด (โซเดียมต่ำ/ไร้น้ำตาลทราย)");
     if (isVegan) safetyBadges.push("วีแกน (พืช 100%)");
@@ -1514,8 +1517,8 @@ export default function DashboardPage() {
       const snackHomeDish = isNoDairy || isVegan
         ? "แอปเปิ้ลเขียวหั่นเสี้ยว 1 ลูก + เนยถั่วอัลมอนด์ 1 ช้อนโต๊ะ (หรือไข่ต้ม 1 ฟอง)"
         : isNoPeanuts
-        ? "กรีกโยเกิร์ตแท้ 1 ถ้วย + ผลไม้ตระกูลเบอร์รี่สด"
-        : "กรีกโยเกิร์ต 1 ถ้วย + เนยถั่วแท้ 1 ช้อนชา + กล้วยหอมครึ่งลูก";
+          ? "กรีกโยเกิร์ตแท้ 1 ถ้วย + ผลไม้ตระกูลเบอร์รี่สด"
+          : "กรีกโยเกิร์ต 1 ถ้วย + เนยถั่วแท้ 1 ช้อนชา + กล้วยหอมครึ่งลูก";
       const snackHomeTip = "ให้ทั้งโปรตีนและไขมันดี ชะลอความหิว และช่วยซ่อมแซมกล้ามเนื้อหลังฝึก";
       const snackHomePlate = "ผลไม้สด 1 ส่วน : กรีกโยเกิร์ต/ไข่ต้ม 1 ส่วน";
       const snackHomeImage = "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=80";
@@ -1656,17 +1659,19 @@ export default function DashboardPage() {
               </span>
             )}
 
-            {/* ปุ่มเข้าสู่ระบบหลังบ้าน (Admin Dashboard) */}
-            <Link
-              href="/admin"
-              className="px-2.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
-              title="เข้าสู่ระบบจัดการหลังบ้าน (Admin Dashboard)"
-            >
-              <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <span className="hidden sm:inline">Admin</span>
-            </Link>
+            {/* ปุ่มเข้าสู่ระบบหลังบ้าน (Admin Dashboard) - แสดงเฉพาะบัญชีผู้ดูแลระบบ (Admin) เท่านั้น */}
+            {currentUser?.role === "admin" && (
+              <Link
+                href="/admin"
+                className="px-2.5 py-1.5 rounded-xl border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                title="เข้าสู่ระบบจัดการหลังบ้าน (Admin Dashboard)"
+              >
+                <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            )}
 
             {/* ปุ่มสลับธีม สว่าง / มืด */}
             <ThemeToggle />
@@ -1779,10 +1784,10 @@ export default function DashboardPage() {
                 {assessment.bmi < 18.5
                   ? "ผอม"
                   : assessment.bmi <= 22.9
-                  ? "สมส่วน"
-                  : assessment.bmi <= 24.9
-                  ? "น้ำหนักเกิน"
-                  : "ภาวะเสี่ยงอ้วน"}
+                    ? "สมส่วน"
+                    : assessment.bmi <= 24.9
+                      ? "น้ำหนักเกิน"
+                      : "ภาวะเสี่ยงอ้วน"}
               </div>
             </div>
 
@@ -1817,11 +1822,10 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("workout")}
-            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
-              activeTab === "workout"
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${activeTab === "workout"
                 ? "bg-white text-emerald-700 shadow-sm border border-zinc-200"
                 : "text-zinc-600 hover:text-zinc-900"
-            }`}
+              }`}
           >
             <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1835,11 +1839,10 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("nutrition")}
-            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
-              activeTab === "nutrition"
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${activeTab === "nutrition"
                 ? "bg-white text-teal-700 shadow-sm border border-zinc-200"
                 : "text-zinc-600 hover:text-zinc-900"
-            }`}
+              }`}
           >
             <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
@@ -1850,11 +1853,10 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${
-              activeTab === "overview"
+            className={`px-5 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2.5 min-h-[44px] ${activeTab === "overview"
                 ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
                 : "text-zinc-600 hover:text-zinc-900"
-            }`}
+              }`}
           >
             <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -2314,11 +2316,10 @@ export default function DashboardPage() {
                       key={sec}
                       type="button"
                       onClick={() => handleStartTimer(sec)}
-                      className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold border transition active:scale-[0.98] ${
-                        timerPreset === sec && isTimerRunning
+                      className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold border transition active:scale-[0.98] ${timerPreset === sec && isTimerRunning
                           ? "bg-emerald-600 border-emerald-700 text-white shadow-sm"
                           : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-                      }`}
+                        }`}
                     >
                       {sec} วิ
                     </button>
@@ -2344,9 +2345,8 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={dayIndex}
-                    className={`bg-white border rounded-3xl p-5 sm:p-7 shadow-sm transition ${
-                      isCompleted ? "border-emerald-300 bg-emerald-50/20" : "border-zinc-200"
-                    }`}
+                    className={`bg-white border rounded-3xl p-5 sm:p-7 shadow-sm transition ${isCompleted ? "border-emerald-300 bg-emerald-50/20" : "border-zinc-200"
+                      }`}
                   >
                     {/* สวิตช์สลับสถานที่ฝึกประจำวัน (บ้าน / ฟิตเนส / กลางแจ้ง) */}
                     <div className="mb-5 pb-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-3">
@@ -2362,33 +2362,30 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "home")}
-                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
-                              currentLoc === "home"
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${currentLoc === "home"
                                 ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
                                 : "text-zinc-600 hover:text-zinc-900"
-                            }`}
+                              }`}
                           >
                             <span>ที่บ้าน</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "gym")}
-                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
-                              currentLoc === "gym"
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${currentLoc === "gym"
                                 ? "bg-white text-teal-800 shadow-xs border border-zinc-200"
                                 : "text-zinc-600 hover:text-zinc-900"
-                            }`}
+                              }`}
                           >
                             <span>ฟิตเนส</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSwitchDayLocation(dayIndex, "outdoor")}
-                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${
-                              currentLoc === "outdoor"
+                            className={`min-h-[40px] px-4 py-1.5 rounded-xl text-sm font-bold transition flex items-center gap-1.5 ${currentLoc === "outdoor"
                                 ? "bg-white text-emerald-800 shadow-xs border border-zinc-200"
                                 : "text-zinc-600 hover:text-zinc-900"
-                            }`}
+                              }`}
                           >
                             <span>กลางแจ้ง / สวน</span>
                           </button>
@@ -2442,11 +2439,10 @@ export default function DashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleCompleteDay(dayIndex)}
-                          className={`min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold border transition flex items-center gap-2 active:scale-[0.98] ${
-                            isCompleted
+                          className={`min-h-[44px] px-5 py-2.5 rounded-2xl text-sm font-bold border transition flex items-center gap-2 active:scale-[0.98] ${isCompleted
                               ? "bg-emerald-600 border-emerald-700 text-white"
                               : "bg-slate-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100"
-                          }`}
+                            }`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -2465,11 +2461,10 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={exIndex}
-                            className={`p-4 sm:p-5 rounded-2xl border transition space-y-3 ${
-                              isExCompleted
+                            className={`p-4 sm:p-5 rounded-2xl border transition space-y-3 ${isExCompleted
                                 ? "bg-emerald-50/40 border-emerald-300"
                                 : "bg-slate-50/60 border-zinc-200 hover:border-zinc-300"
-                            }`}
+                              }`}
                           >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                               <div className="flex flex-wrap items-center gap-2">
@@ -2567,11 +2562,10 @@ export default function DashboardPage() {
                                     initialIndex: exIndex,
                                   })
                                 }
-                                className={`min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${
-                                  isExCompleted
+                                className={`min-h-[44px] px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] ${isExCompleted
                                     ? "bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100"
                                     : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/10"
-                                }`}
+                                  }`}
                                 title={isExCompleted ? "ฝึกซ้ำด้วย AI" : "เปิดกล้องจับท่า AI เฉพาะท่านี้"}
                               >
                                 {isExCompleted ? (
@@ -2813,12 +2807,12 @@ export default function DashboardPage() {
                                   [idx]: optIdx,
                                 }))
                               }
-                              className={`p-2.5 rounded-2xl text-left transition flex items-center gap-3 active:scale-[0.98] border ${
-                                isSelected
+                              className={`p-2.5 rounded-2xl text-left transition flex items-center gap-3 active:scale-[0.98] border ${isSelected
                                   ? "bg-emerald-50/90 border-emerald-500 text-emerald-950 shadow-sm ring-2 ring-emerald-500/20"
                                   : "bg-slate-50/80 hover:bg-slate-100/90 border-zinc-200/80 text-zinc-700"
-                              }`}
+                                }`}
                             >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={opt.imageUrl || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=120&q=80"}
                                 alt={opt.dish}
@@ -2833,8 +2827,8 @@ export default function DashboardPage() {
                                   {opt.category === "ตามสั่ง/นอกบ้าน"
                                     ? "นอกบ้าน / ตามสั่ง"
                                     : opt.category === "ทำเองง่ายๆ"
-                                    ? "ทำเอง (สูตร 2:1:1)"
-                                    : "พร้อมทานสะดวก"}
+                                      ? "ทำเอง (สูตร 2:1:1)"
+                                      : "พร้อมทานสะดวก"}
                                 </span>
                                 <span className="text-[11px] text-zinc-500 block truncate mt-0.5">
                                   {opt.dish}
@@ -2851,6 +2845,7 @@ export default function DashboardPage() {
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
                         {/* ฝั่งภาพถ่ายอาหารความละเอียดสูงขนาดใหญ่ */}
                         <div className="md:col-span-5 relative min-h-[220px] sm:min-h-[250px] md:min-h-[280px] bg-slate-200 overflow-hidden group">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={activeOption.imageUrl || "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80"}
                             alt={activeOption.imageAlt || activeOption.dish}

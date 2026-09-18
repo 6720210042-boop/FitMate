@@ -79,10 +79,11 @@ export default function RegisterPage() {
           return;
         }
 
+        // บัญชีที่สมัครใหม่ภายนอกจะได้รับสิทธิ์เป็นผู้ใช้ทั่วไป (user) เท่านั้น
+        // ยกเว้นเฉพาะบัญชีผู้ดูแลระบบหลักที่กำหนดไว้ล่วงหน้า
         const isAdmin =
           normalizedEmail === "adminchin@fitmate.app" ||
-          normalizedEmail === "pathomphon7n@gmail.com" ||
-          normalizedEmail.startsWith("admin@");
+          normalizedEmail === "pathomphon7n@gmail.com";
         accounts.push({
           name: trimmedName,
           email: normalizedEmail,

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       success: true,
       message: "ยืนยันรหัส OTP สำเร็จ",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[FitMate Verify OTP Error]:", error);
     return NextResponse.json(
       { success: false, error: "เกิดข้อผิดพลาดในการตรวจสอบรหัส OTP" },
